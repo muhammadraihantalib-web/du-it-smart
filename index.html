@@ -817,6 +817,7 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
         <label class="btn" for="incFile" role="button" tabindex="0">Upload payslip</label><input type="file" id="incFile" accept="application/pdf,image/*" multiple hidden>
         <label class="btn" for="incCam" role="button" tabindex="0">Take a photo</label><input type="file" id="incCam" accept="image/*" capture="environment" hidden></div>
       <div class="sub">Basic and allowance are the same every month. OT is different every month, so it is saved for the month you have selected.</div>
+      <label class="note" style="display:flex;gap:8px;align-items:center;cursor:pointer;font-weight:600"><input type="checkbox" id="claimUse" checked> I use a claim account for company claims</label>
       <div class="incgrid">
         <label>Basic salary (RM)<span class="req">*</span><input id="incBasic" type="number" step="0.01" min="0" inputmode="decimal"></label>
         <label>Fixed allowance (RM)<input id="incAllow" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>
@@ -827,7 +828,9 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
         <div class="incgrid">
           <label>OT allowance (RM)<input id="incOT" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>
           <label>EPF + SOCSO + EIS + PCB (RM)<input id="incDedM" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>
+          <label id="incClaimLbl">Claim money coming in (RM)<input id="incClaim" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0"></label>
         </div>
+        <div class="note" id="incClaimNote">Claim money is not part of your take-home. It shows as money in, and a "Refund claim" line is added to the checklist. Tick it when you transfer the money back to the claim account.</div>
         <div class="note" id="incDedNote"></div>
       </div>
       <div class="inceq" id="incEq"></div>
@@ -849,8 +852,10 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
           <div class="kv big"><span>Balance after deduct</span><b id="tAfter">–</b></div>
           <div class="tdiv"></div>
           <div class="kv"><span>Net income (take-home)</span><b id="tSal">–</b></div>
+          <div class="kv" id="tClaimRow" hidden><span>Claim money in</span><b id="tClaimIn">–</b></div>
           <div class="kv big"><span>Salary balance now</span><b id="tSalBal">–</b></div>
-          <div class="kv"><span>Personal card spending</span><b id="tPers">–</b></div>
+          <div class="kv"><label style="display:flex;gap:7px;align-items:center;cursor:pointer" title="Untick if you paid this month's card bills from money that is not recorded here"><input type="checkbox" id="tCount" checked aria-label="Count personal card spending in this month"> Personal card spending</label><b id="tPers">–</b></div>
+          <div class="kv" id="tClaimCardRow" hidden><span>Card claims · paid from claim account</span><b id="tClaimCard">–</b></div>
           <div class="kv"><span>Left after everything</span><b id="tLeft">–</b></div>
         </div>
         <div class="tbar"><i id="tBar"></i></div>
@@ -915,6 +920,53 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
   </div>
 
   <!-- FUTURE MONEY TAB -->
+  <div id="v-claim" class="wrap" style="gap:16px" hidden>
+    <section class="card">
+      <div class="row"><h2 id="clmTitle">Claim account</h2><span class="spacer"></span><button id="clmRemove" class="clr">Remove claim section</button></div>
+      <div class="sub">Money for company claims only. Upload the bank statement, tag each line as claim or personal, and watch what comes in and goes out. Removing the section hides it. Your lines stay saved.</div>
+      <div class="incgrid"><label>Account name<input id="clmName" placeholder="Bank Islam" style="text-align:left"></label><label>Opening balance (RM)<input id="clmOpen" type="number" step="0.01" inputmode="decimal" placeholder="0"></label></div>
+      <div class="tally">
+        <div><div class="tl" id="clmLabel">Balance now</div><div class="tbig num" id="clmBal">–</div><div class="teq num" id="clmEq"></div></div>
+        <div class="tside">
+          <div class="kv"><span id="clmMonthLbl">This month</span><b></b></div>
+          <div class="kv"><span>Money in</span><b id="clmIn">–</b></div>
+          <div class="kv"><span>Out for claims</span><b id="clmOutC">–</b></div>
+          <div class="kv big"><span>Out for personal use</span><b id="clmOutP">–</b></div>
+          <div class="kv"><span>Other out</span><b id="clmOutO">–</b></div>
+        </div>
+      </div>
+      <div class="note" id="clmWarn"></div>
+    </section>
+    <section class="card">
+      <h2 style="font-size:19px">Upload bank statement</h2>
+      <div class="sub">PDF (best) or a clear photo. The page reads the lines itself, then you tag each one. Check every line before saving.</div>
+      <div class="drop" id="clmDrop">
+        <div style="font-weight:600">Drop files here, or</div>
+        <div class="row" style="justify-content:center"><label class="btn primary" for="clmFile">Choose PDF or images</label><label class="btn" for="clmCam">Take a photo</label></div>
+        <input type="file" id="clmFile" accept="application/pdf,image/*" multiple hidden><input type="file" id="clmCam" accept="image/*" capture="environment" hidden>
+        <div class="files" id="clmFiles"></div>
+      </div>
+      <div class="row"><button class="primary" id="clmRead" disabled>Read statement</button><span class="status" id="clmStatus"></span></div>
+    </section>
+    <section class="card" id="clmRevBox" hidden>
+      <h2 style="font-size:19px">Check and save</h2>
+      <div class="sub" id="clmRevSub"></div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th class="r">RM</th><th>Tag</th><th></th></tr></thead><tbody id="clmRevRows"></tbody></table></div>
+      <div class="row"><button class="primary" id="clmSaveRev">Save lines</button><button id="clmCancelRev">Cancel</button><span class="status" id="clmRevStatus"></span></div>
+    </section>
+    <section class="card">
+      <div class="row"><h2 style="font-size:19px" id="clmLinesTitle">Lines</h2><span class="spacer"></span><button id="clmAllBtn">Show all months</button></div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <input type="date" id="clmNDate" style="width:auto"><input type="text" id="clmNDesc" placeholder="Description" style="flex:1;min-width:140px">
+        <input type="number" id="clmNAmt" step="0.01" min="0" placeholder="RM" inputmode="decimal" style="width:110px;text-align:right">
+        <select id="clmNDir"><option value="1">Money in</option><option value="-1" selected>Money out</option></select>
+        <select id="clmNTag"></select><button id="clmNAdd">+ Add line</button>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Date</th><th>Description</th><th class="r">RM</th><th>Tag</th><th></th></tr></thead><tbody id="clmRows"></tbody></table></div>
+      <div class="status" id="clmLinesStatus"></div>
+    </section>
+  </div>
+
   <div id="v-future" class="wrap" style="gap:16px" hidden>
     <section class="card">
       <div class="row"><h2>Future money</h2><span class="spacer"></span><span class="sub">Separate from your monthly checklist</span><button id="clrFuture" class="clr">Clear all</button></div>
@@ -1010,7 +1062,9 @@ const fromIso=v=>{const[y,m]=String(v).split("-").map(Number);return y&&m?MN[m-1
 const q=n=>"'"+n.replace(/'/g,"''")+"'";
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
 const S={mcp:null,sample:null,limits:null,id:null,title:"",sheets:[],month:null,files:[],review:[],busy:false,tab:ls.get("md.tab")||"check"};
-const M={items:[],spend:[],sal:0,ef:0,lastTick:null};
+const M={items:[],spend:[],sal:0,ef:0,lastTick:null,cardOff:false,claim:0};
+const CL={on:true,name:"Bank Islam",open:0,lines:[],loaded:false,all:false,review:[],files:[],busy:false};
+const REFNAME="Refund claim to claim account";
 const F={pots:[],loaded:false};
 const EDIT={row:null,sp:null};
 
@@ -1052,8 +1106,10 @@ const PLANSTYLE={Savings:["piggy","#2C9C9C"],Investment:["trend","#6A49B3"],"Eme
 const cs=c=>CATSTYLE[c]||CATSTYLE.Other, ps=c=>PLANSTYLE[c]||PLANSTYLE.Other;
 const icon=([k,c])=>`<span class="ic" style="background:${c}1f;color:${c}">${svg(k,c)}</span>`;
 const incIcon=n=>/perform|kpi/i.test(n)?["star","#C98316"]:/bonus|incentive/i.test(n)?["gift","#B5487E"]:/divid|asb|asnb|unit|saham|share/i.test(n)?["sprout","#2C9C9C"]:["coins","#0E6B5C"];
-$("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["health","pulse","Health check"]]
-  .map(([t,i,l])=>`<button role="tab" data-tab="${t}" aria-selected="${t===S.tab}">${svg(i)}${l}</button>`).join("");
+function buildTabs(){if(!CL.on&&S.tab==="claim")S.tab="check";
+  $("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],...(CL.on?[["claim","bank","Claim account"]]:[]),["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["health","pulse","Health check"]]
+  .map(([t,i,l])=>`<button role="tab" data-tab="${t}" aria-selected="${t===S.tab}">${svg(i)}${l}</button>`).join("")}
+buildTabs();
 
 /* ---------- plumbing ---------- */
 function status(el,t,cls){el.textContent=t||"";el.className="status"+(cls?" "+cls:"")}
@@ -1130,7 +1186,8 @@ $("#copyBtn").onclick=async()=>{const name=$("#nameIn").value.trim()||"Me",b=$("
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;ls.set("md.tab",t);$("#v-setup").hidden=true;$("#tabs").hidden=!S.id;$$("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
-  ["check","card","future","savings","yearly","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
+  ["check","card","claim","future","savings","yearly","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
+  if(t==="claim"&&S.id){loadClaim().then(renderClaim).catch(e=>status($("#clmStatus"),errText(e),"err"));renderClaim()}
   if(t==="savings"&&S.id)loadSavings();
   if(t==="card"&&S.id&&!CD.loaded)loadCards();
   if(t==="future"&&S.id&&!F.loaded)loadFuture();
@@ -1161,7 +1218,7 @@ async function createMonth(name,seed){
     await call(SHEETS,"update_spreadsheet",{spreadsheetId:S.id,requests:[{duplicateSheet:{sourceSheetId:src.sheetId,insertSheetIndex:src.index+(keyOf(name)>keyOf(srcName)?1:0),newSheetName:name}}]});
     const items=await get("B"+FR+":B400",name);
     if(items.length)await put("A"+FR+":A"+(FR+items.length-1),items.map(r=>[r[0]?false:""]),name);
-    await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(name)+"!H"+FR+":N400",q(name)+"!P4:P5"]});
+    await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(name)+"!H"+FR+":N400",q(name)+"!P4:P7"]});
   }else{
     const tpl=S.sheets.find(p=>p.title==="_Month");
     const com=seed||(await get("A4:D300","Commitments")).filter(r=>r[0]&&num(r[2])>0);
@@ -1199,7 +1256,10 @@ async function loadMonth(){
   EDIT.row=null;EDIT.sp=null;if(!S.month){renderAll();return}
   status($("#clStatus"),"Loading "+S.month+"…");
   try{
-    const [v,sv,ef,mi]=await Promise.all([get("A"+FR+":N400"),get("B4:C6"),get("C8","Settings").catch(()=>[]),get("P4:P5").catch(()=>[])]);
+    const [v,sv,ef,mi,cs0]=await Promise.all([get("A"+FR+":N400"),get("B4:C6"),get("C8","Settings").catch(()=>[]),get("P4:P7").catch(()=>[]),get("C19:C21","Settings").catch(()=>[])]);
+    const wasOn=CL.on;CL.on=String(((cs0[0]||[])[0])||"").trim().toUpperCase()!=="OFF";CL.name=String(((cs0[1]||[])[0])||"").trim()||"Bank Islam";CL.open=num((cs0[2]||[])[0]);if(wasOn!==CL.on)buildTabs();
+    M.claim=num((mi[3]||[])[0]);
+    M.cardOff=String(((mi[2]||[])[0])||"").trim().toUpperCase()==="OFF";
     M.ot=num((mi[0]||[])[0]);M.dedm=String(((mi[1]||[])[0])||"").trim()===""?"":num((mi[1]||[])[0]);
     M.items=[];M.spend=[];
     v.forEach((r,i)=>{const row=FR+i;
@@ -1207,21 +1267,24 @@ async function loadMonth(){
       if(r[8])M.spend.push({row,date:r[7]||"",desc:r[8],amt:num(r[9]),src:r[10]||"",type:r[11]||"",cat:r[12]||""})});
     M.sal=num((sv[2]||[])[1]);M.ef=num(((ef[0]||[])[0]));
     status($("#clStatus"),"");renderAll();if(M.spend.length||M.items.some(i=>i.name===CCNAME||isOldLink(i)))syncCardItem(true);
+    syncClaimItem();
   }catch(e){status($("#clStatus"),errText(e),"err")}
 }
 function renderAll(){renderIncome();renderChecklist();renderCats();renderSpend();if(S.tab==="health")renderHealth()}
-function calc(){const tot=M.items.reduce((s,x)=>s+x.amt,0),paid=M.items.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0);
+const liveItems=()=>M.items.filter(i=>!(M.cardOff&&i.name===CCNAME)&&!(!CL.on&&i.name===REFNAME));
+const incTot=()=>M.sal+(CL.on?M.claim:0);
+function calc(){const L=liveItems(),tot=L.reduce((s,x)=>s+x.amt,0),paid=L.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0);
   const pers=M.spend.filter(x=>x.type==="Personal").reduce((s,x)=>s+x.amt,0),claim=M.spend.filter(x=>x.type==="Claim").reduce((s,x)=>s+x.amt,0);
-  const by=t=>M.items.filter(x=>x.type===t).reduce((s,x)=>s+x.amt,0);
-  const persOut=M.items.some(i=>i.name===CCNAME)?0:pers;return {tot,paid,left:tot-paid,pers,persOut,claim,n:M.items.length,np:M.items.filter(x=>x.paid).length,tax:by("EPF / tax"),save:by("Savings"),inv:by("Investment"),fixed:by("Fixed cost"),free:by("Guilt-free")}}
+  const by=t=>L.filter(x=>x.type===t).reduce((s,x)=>s+x.amt,0);
+  const persOut=M.cardOff||M.items.some(i=>i.name===CCNAME)?0:pers;return {tot,paid,left:tot-paid,pers,persOut,claim,n:L.length,np:L.filter(x=>x.paid).length,tax:by("EPF / tax"),save:by("Savings"),inv:by("Investment"),fixed:by("Fixed cost"),free:by("Guilt-free"),refund:L.filter(x=>x.name===REFNAME).reduce((s,x)=>s+x.amt,0)}}
 
 /* ---------- checklist ---------- */
 function renderTally(){const c=calc();
   $("#clTitle").textContent="Checklist · "+(S.month||"");$("#tLabel").textContent=`Balance to pay · ${c.n-c.np} of ${c.n} left`;
   $("#tBal").textContent=RM(c.left);$("#tEq").textContent=`${RM(c.tot)} total − ${RM(c.paid)} ticked = ${RM(c.left)}`;
   $("#tTot").textContent=RM(c.tot);$("#tPaid").textContent="− "+RM(c.paid);$("#tAfter").textContent=RM(c.left);
-  $("#tSal").textContent=RM(M.sal);$("#tSalBal").textContent=RM(M.sal-c.paid);$("#tPers").textContent=RM(c.pers)+(M.items.some(i=>i.name===CCNAME)?" · in list":"");
-  const lf=M.sal-c.tot-c.persOut;$("#tLeft").textContent=RM(lf);$("#tLeft").classList.toggle("neg",lf<0);
+  $("#tSal").textContent=RM(M.sal);$("#tSalBal").textContent=RM(incTot()-c.paid);{const ci=CL.on&&M.claim>0;$("#tClaimRow").hidden=!ci;if(ci)$("#tClaimIn").textContent="+ "+RM(M.claim);$("#tClaimCardRow").hidden=!(c.claim>0);$("#tClaimCard").textContent=RM(c.claim)+" · not counted"}$("#tPers").textContent=RM(c.pers)+(M.cardOff?" · not counted":M.items.some(i=>i.name===CCNAME)?" · in list":"");const tc=$("#tCount");if(tc)tc.checked=!M.cardOff;
+  const lf=incTot()-c.tot-c.persOut;$("#tLeft").textContent=RM(lf);$("#tLeft").classList.toggle("neg",lf<0);
   $("#tBar").style.width=(c.tot?c.paid/c.tot*100:0)+"%";
   const t=M.lastTick;$("#tLast").textContent=t?`${t.name} ${t.on?"ticked":"unticked"}: ${RM(t.before)} ${t.on?"−":"+"} ${RM(t.amt)} = ${RM(t.after)}`:(c.n&&!c.left?"All commitments paid for "+S.month+".":"Tick a box to deduct it.")}
 const opts=(list,v)=>{const l=list.includes(v)||!v?list:[v,...list];return l.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")};
@@ -1233,16 +1296,16 @@ function editorHTML(x){const isNew=x.row==="new";
     <div class="acts"><button class="primary" data-esave="${x.row}">${isNew?"Add":"Save"}</button><button data-ecancel="1">Cancel</button>${isNew?"":`<span class="spacer"></span><button class="danger" data-edel="${x.row}">Delete</button>`}</div></div>`}
 function renderChecklist(){
   renderTally();
-  const g={};M.items.forEach(x=>(g[x.cat]=g[x.cat]||[]).push(x));
+  const g={};M.items.filter(x=>CL.on||x.name!==REFNAME).forEach(x=>(g[x.cat]=g[x.cat]||[]).push(x));
   const order=[...CATS,...Object.keys(g).filter(c=>!CATS.includes(c))].filter(c=>g[c]);
   $("#clist").innerHTML=order.map(c=>{const L=g[c],t=L.reduce((s,x)=>s+x.amt,0),p=L.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0);
     return `<div class="grp"><h3>${icon(cs(c))}<span class="t">${esc(c)}</span><span class="num">${RM(p)} / ${RM(t)}</span></h3>`+
-    L.map(x=>EDIT.row===x.row?editorHTML(x):`<div class="item${x.paid?" paid":""}"><input type="checkbox" class="tick" data-tick="${x.row}" ${x.paid?"checked":""} aria-label="Paid: ${esc(x.name)}"><span class="nm" data-toggle="${x.row}">${esc(x.name)} <small>· ${esc(x.type)}</small></span><span class="amt">${x.amt.toFixed(2)}</span><span class="mv"><button class="pen" data-mv="${x.row}:-1" aria-label="Move ${esc(x.name)} up" title="Move up">▲</button><button class="pen" data-mv="${x.row}:1" aria-label="Move ${esc(x.name)} down" title="Move down">▼</button></span><button class="pen" data-edit="${x.row}" aria-label="Edit ${esc(x.name)}" title="Edit">✎</button></div>`).join("")+"</div>"}).join("")||`<div class="sub">No commitments on this month yet.</div>`;
+    L.map(x=>EDIT.row===x.row?editorHTML(x):`<div class="item${x.paid?" paid":""}${M.cardOff&&x.name===CCNAME?" off":""}" ${M.cardOff&&x.name===CCNAME?'style="opacity:.45" title="Not counted this month"':""}><input type="checkbox" class="tick" data-tick="${x.row}" ${x.paid?"checked":""} ${M.cardOff&&x.name===CCNAME?"disabled":""} aria-label="Paid: ${esc(x.name)}"><span class="nm" data-toggle="${x.row}">${esc(x.name)} <small>· ${esc(x.type)}${M.cardOff&&x.name===CCNAME?" · not counted":""}</small></span><span class="amt">${x.amt.toFixed(2)}</span><span class="mv"><button class="pen" data-mv="${x.row}:-1" aria-label="Move ${esc(x.name)} up" title="Move up">▲</button><button class="pen" data-mv="${x.row}:1" aria-label="Move ${esc(x.name)} down" title="Move down">▼</button></span><button class="pen" data-edit="${x.row}" aria-label="Edit ${esc(x.name)}" title="Edit">✎</button></div>`).join("")+"</div>"}).join("")||`<div class="sub">No commitments on this month yet.</div>`;
   $("#clist").insertAdjacentHTML("beforeend",EDIT.row==="new"?editorHTML({row:"new",name:"",cat:"Housing",amt:0,type:"Fixed cost"}):`<div class="row" style="margin-top:12px"><button data-edit="new">+ Add commitment</button><span class="note">Changes apply to ${esc(S.month||"")}, later months and Profile & setup. Earlier months keep their history.</span></div>`);
 }
 function renderCats(){
-  const t={};M.items.forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amt);const c=calc();if(c.persOut>0)t["Personal spending"]=c.persOut;
-  const left=M.sal-c.tot-c.persOut,max=Math.max(1,M.sal);
+  const t={};liveItems().forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amt);const c=calc();if(c.persOut>0)t["Personal spending"]=c.persOut;
+  const left=incTot()-c.tot-c.persOut,max=Math.max(1,M.sal);
   $("#cats").innerHTML=Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const st=cs(k);return `<div class="cat">${icon(st)}<span>${esc(k)}</span><span class="bar"><i style="width:${Math.min(100,v/max*100)}%;background:${st[1]}"></i></span><span class="num">${RM(v)} · ${(v/max*100).toFixed(1)}%</span></div>`}).join("")+
     `<div class="cat">${icon([left<0?"debt":"piggy",left<0?"#BF3B26":"#23845A"])}<span><b>Left over</b></span><span class="bar"><i style="width:${Math.max(0,Math.min(100,left/max*100))}%;background:${left<0?"var(--crit)":"var(--good)"}"></i></span><span class="num${left<0?" neg":""}"><b>${RM(left)}</b> · ${(left/max*100).toFixed(1)}%</span></div><div class="note">Percent of total income (${RM(M.sal)}).</div>`;
 }
@@ -1323,9 +1386,11 @@ async function syncCardItem(quiet){if(!S.month||ccBusy)return;ccBusy=true;const 
 
 /* ---------- clicks & changes for checklist / spending ---------- */
 document.addEventListener("change",async e=>{const t=e.target;
+  if(t.id==="tCount"){const was=M.cardOff;M.cardOff=!t.checked;M.lastTick=null;renderChecklist();renderCats();if(S.tab==="health")renderHealth();
+    try{await put("P6",[[M.cardOff?"OFF":""]]);status($("#clStatus"),M.cardOff?"Card spending is not counted in "+S.month+".":"Card spending is counted in "+S.month+".","ok")}catch(err){M.cardOff=was;renderChecklist();renderCats();status($("#clStatus"),"Not saved: "+errText(err),"err")}return}
   if(t.dataset.tick){const x=M.items.find(i=>i.row===+t.dataset.tick);if(!x)return;const before=calc().left;x.paid=t.checked;
     M.lastTick={name:x.name,amt:x.amt,on:x.paid,before,after:calc().left};renderChecklist();renderCats();
-    try{await put("A"+x.row,[[x.paid]]);status($("#clStatus"),"Saved to your sheet.","ok")}catch(err){x.paid=!x.paid;M.lastTick=null;renderChecklist();renderCats();status($("#clStatus"),"Not saved: "+errText(err),"err")}}
+    try{await put("A"+x.row,[[x.paid]]);status($("#clStatus"),"Saved to your sheet.","ok");if(x.name===REFNAME)reconcileRefund()}catch(err){x.paid=!x.paid;M.lastTick=null;renderChecklist();renderCats();status($("#clStatus"),"Not saved: "+errText(err),"err")}}
   if(t.dataset.sprow){const x=M.spend.find(i=>i.row===+t.dataset.sprow);if(!x)return;const old=x.type;x.type=t.value;renderAll();
     try{await put("L"+x.row,[[x.type]]);status($("#spStatus"),"Saved.","ok");syncCardItem()}catch(err){x.type=old;renderSpend();status($("#spStatus"),"Not saved: "+errText(err),"err")}}
 });
@@ -1356,6 +1421,143 @@ document.addEventListener("click",async e=>{
 });
 $("#reloadBtn").onclick=()=>refreshAll();
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible"&&S.id&&S.month&&!S.busy&&EDIT.row==null&&EDIT.sp==null)loadMonth()});
+
+/* ---------- claim account (optional): bank statement, tags, auto refund ---------- */
+const CTAB2="Claim",CLTAGS=["Claim","Personal","Refund in","Other"];
+const todayIso=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")};
+const clBal=()=>CL.open+CL.lines.reduce((s,x)=>s+x.amt,0);
+async function loadClaim(force){if(CL.loaded&&!force)return;
+  if(!S.sheets.some(p=>p.title===CTAB2)){
+    await call(SHEETS,"update_spreadsheet",{spreadsheetId:S.id,requests:[{addSheet:{properties:{title:CTAB2,gridProperties:{rowCount:500,columnCount:8}}}}]});await refreshMeta();
+    await put("A1:F1",[["Claim account","","","","",""]],CTAB2);await put("A7:F7",[["Date","Description","Amount (+in / −out)","Tag","Ref","Source"]],CTAB2)}
+  const v=await get("A8:F800",CTAB2);CL.lines=[];
+  v.forEach((r,i)=>{if(r[1]||r[2])CL.lines.push({row:8+i,date:r[0]||"",desc:r[1]||"",amt:num(r[2]),tag:r[3]||"Other",ref:r[4]||"",src:r[5]||"manual"})});
+  CL.loaded=true}
+const lineVals=l=>[[l.date,l.desc,l.amt,l.tag,l.ref,l.src]];
+async function addLine(l){l.row=Math.max(7,...CL.lines.map(x=>x.row))+1;await put("A"+l.row+":F"+l.row,lineVals(l),CTAB2);CL.lines.push(l)}
+async function saveLine(l){await put("A"+l.row+":F"+l.row,lineVals(l),CTAB2)}
+async function delLine(l){await put("A"+l.row+":F"+l.row,[["","","","","",""]],CTAB2);CL.lines=CL.lines.filter(x=>x!==l)}
+
+/* the "Refund claim" commitment follows the claim amount typed in Income */
+let refBusy=false;
+async function syncClaimItem(){if(!S.month||refBusy||!CL.on)return;refBusy=true;
+  try{const x=M.items.find(i=>i.name===REFNAME),want=Math.round(M.claim*100)/100;
+    if(!x&&want>0){const row=Math.max(FR-1,...M.items.map(i=>i.row))+1;await put("A"+row+":E"+row,[[false,REFNAME,"Claim refund",want,"Claim refund"]]);M.items.push({row,paid:false,name:REFNAME,cat:"Claim refund",amt:want,type:"Claim refund"});renderAll()}
+    else if(x&&want<=0){await put("A"+x.row+":F"+x.row,[["","","","","",""]]);M.items=M.items.filter(i=>i!==x);renderAll()}
+    else if(x&&Math.abs(x.amt-want)>0.004){await put("D"+x.row,[[want]]);x.amt=want;renderAll()}
+    await reconcileRefund()}
+  catch(e){status($("#clStatus"),"Couldn't update the claim refund: "+errText(e),"err")}
+  refBusy=false}
+/* ticked = money went back into the claim account. Unticked = it did not. */
+async function reconcileRefund(){if(!CL.on||!S.month)return;
+  try{await loadClaim();const it=M.items.find(i=>i.name===REFNAME),ref="refund:"+S.month,want=it&&it.paid?Math.round(it.amt*100)/100:0,ln=CL.lines.find(x=>x.ref===ref);
+    if(want>0&&!ln)await addLine({date:todayIso(),desc:"Refund from salary account · "+S.month,amt:want,tag:"Refund in",ref,src:"auto"});
+    else if(ln&&ln.src==="auto"){if(want<=0)await delLine(ln);else if(Math.abs(ln.amt-want)>0.004){ln.amt=want;await saveLine(ln)}}
+    if(S.tab==="claim")renderClaim()}
+  catch(e){status($("#clStatus"),"Claim account not updated: "+errText(e),"err")}}
+
+/* ---------- reading a bank statement (PDF text, or OCR for photos) ---------- */
+const MONN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+function parseBank(text,defYear){
+  const L=text.split(/\n/).map(s=>s.replace(/\s+/g," ").trim()).filter(Boolean),rows=[];let cur=null,open=null;
+  const dre=/^(\d{1,2})[\/\-. ]([A-Za-z]{3,9}|\d{1,2})(?:[\/\-. ,]+(\d{4}|\d{2}))?(?=\s|$)\s*/;
+  const nre=/([+\-−]?)(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})(?:\s?(CR|DR)|([+\-−]))?(?![\d.])/gi;
+  const noise=/^(page|halaman|statement|penyata|account|akaun|total|jumlah|closing|ending|date|tarikh|no\.|\*|baki akhir|bank islam|muamalat|customer|pelanggan|branch|cawangan)/i;
+  const dateOf=m=>{const d=+m[1];let mo=m[2];if(/^\d+$/.test(mo))mo=+mo;else mo=MONN[mo.slice(0,3).toLowerCase()];if(!mo||mo<1||mo>12||d<1||d>31)return null;
+    let y=m[3]?+m[3]:null;if(/^\d{1,2}$/.test(m[2])&&!m[3])return null;if(y!=null&&y<100)y+=2000;if(y==null)y=defYear;return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")};
+  const toks=str=>{const out=[];let m;nre.lastIndex=0;while((m=nre.exec(str))){out.push({v:parseFloat((m[2]).replace(/,/g,"")+"."+m[3]),neg:m[1]==="-"||m[1]==="−"||m[5]==="-"||m[5]==="−",pos:m[1]==="+"||m[5]==="+",cr:/^cr$/i.test(m[4]||""),dr:/^dr$/i.test(m[4]||""),i:m.index,n:m[0].length})}return out};
+  const strip=(str,t)=>{let o="",p=0;t.forEach(k=>{o+=str.slice(p,k.i);p=k.i+k.n});return(o+str.slice(p)).replace(/\s+/g," ").trim()};
+  const fill=(r,str)=>{const t=toks(str);if(!t.length)return false;
+    const a=t.length>=2?t[t.length-2]:t[0],b=t.length>=2?t[t.length-1]:null;
+    r.amt=a.v;r.neg=a.neg;r.pos=a.pos;r.cr=a.cr;r.dr=a.dr;r.bal=b?b.v:null;r.desc=(r.desc+" "+strip(str,t)).trim();return true};
+  for(const line of L){
+    const dm=line.match(dre),dt=dm?dateOf(dm):null;
+    if(!dt&&open==null&&/(beginning|opening|b\/f|baki (awal|bawa)|brought forward)/i.test(line)){const t=toks(line);if(t.length)open=t[t.length-1].v}
+    if(dt){let rest=line.slice(dm[0].length);const d2=rest.match(dre);if(d2&&dateOf(d2))rest=rest.slice(d2[0].length);
+      cur={date:dt,desc:"",amt:null,bal:null};rows.push(cur);const ok=fill(cur,rest);if(!ok)cur.desc=rest.trim()}
+    else if(cur&&!noise.test(line)){
+      if(cur.amt==null){if(!fill(cur,line))cur.desc=(cur.desc+" "+line).trim()}
+      else if(cur.desc.length<110&&!/^[\d\s.,+\-−]+$/.test(line)&&!/\b(page|halaman)\b/i.test(line))cur.desc=(cur.desc+" "+line).trim()}}
+  const good=rows.filter(r=>r.amt!=null&&r.amt>0);let prev=open;
+  const CRW=/\b(CR|CREDIT|KREDIT|DEPOSIT|REFUND|SALARY|PROFIT|DIVIDEN|CASHBACK)\b|TRANSFER FROM|FROM\b|\bIBG CR|INWARD/i;
+  for(const r of good){let sg=0;if(r.cr||r.pos)sg=1;else if(r.dr||r.neg)sg=-1;
+    if(!sg&&r.bal!=null&&prev!=null){const d=r.bal-prev;if(Math.abs(Math.abs(d)-r.amt)<0.011)sg=d>0?1:-1}
+    if(!sg)sg=CRW.test(r.desc)?1:-1;r.amt=Math.round(sg*r.amt*100)/100;if(r.bal!=null)prev=r.bal}
+  return good.map(r=>({date:r.date,desc:r.desc.slice(0,120)||"(no description)",amt:r.amt}))}
+let tessReady=null;
+function tessLib(){if(!tessReady)tessReady=loadScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js").then(()=>window.Tesseract);return tessReady}
+const lineKey=l=>l.date+"|"+Math.round(l.amt*100)+"|"+String(l.desc).toLowerCase().replace(/[^a-z0-9]/g,"").slice(0,18);
+function setClmFiles(list){for(const f of list)CL.files.push(f);$("#clmFiles").innerHTML=CL.files.map((f,i)=>`<span>${esc(f.name||"photo")} <button data-clmrm="${i}" style="padding:0 6px;border:0" aria-label="Remove">×</button></span>`).join("");$("#clmRead").disabled=!CL.files.length||CL.busy}
+$("#clmFile").onchange=e=>{setClmFiles(e.target.files);e.target.value=""};$("#clmCam").onchange=e=>{setClmFiles(e.target.files);e.target.value=""};
+{const d=$("#clmDrop");d.addEventListener("dragover",e=>{e.preventDefault();d.classList.add("over")});d.addEventListener("dragleave",()=>d.classList.remove("over"));d.addEventListener("drop",e=>{e.preventDefault();d.classList.remove("over");setClmFiles(e.dataTransfer.files)})}
+$("#clmRead").onclick=async()=>{const st=t=>status($("#clmStatus"),t);CL.busy=true;$("#clmRead").disabled=true;
+  try{await loadClaim();let text="";const imgs=[];
+    for(const f of CL.files){if(f.type==="application/pdf"||/\.pdf$/i.test(f.name||"")){const r=await pdfParts(f,st);text+="\n"+r.text;imgs.push(...r.imgs)}
+      else if((f.type||"").startsWith("image/")||/\.(jpe?g|png|webp|gif)$/i.test(f.name||""))imgs.push(await shrink(f,2600))}
+    if(imgs.length){st("Loading the photo reader. The first time takes a minute…");const T=await tessLib();
+      for(let i=0;i<imgs.length;i++){st(`Reading photo ${i+1} of ${imgs.length}…`);const r=await T.recognize(imgs[i],"eng");text+="\n"+r.data.text}}
+    const found=parseBank(text,+(S.month||"").split(" ")[1]||new Date().getFullYear());
+    const have=new Set(CL.lines.map(lineKey));
+    CL.review=found.map(r=>({...r,tag:r.amt>0?"Refund in":"Claim",dup:have.has(lineKey(r))}));
+    CL.files=[];setClmFiles([]);
+    st(found.length?`${found.length} lines found. Check them below.`:"No transaction lines found. Try the PDF from Bank Islam online, a clearer photo, or add lines by hand below.");
+    renderClmReview();if(found.length)$("#clmRevBox").scrollIntoView({behavior:"smooth",block:"start"})}
+  catch(e){st((e&&e.message)||"Couldn't read the file.");$("#clmStatus").classList.add("err")}
+  CL.busy=false;$("#clmRead").disabled=!CL.files.length};
+const tagSel=(v,attr)=>`<select ${attr}>${CLTAGS.map(t=>`<option${t===v?" selected":""}>${t}</option>`).join("")}</select>`;
+const sRM=n=>(n>0?"+ ":n<0?"− ":"")+RM(Math.abs(n));
+function renderClmReview(){const box=$("#clmRevBox");box.hidden=!CL.review.length;if(!CL.review.length)return;
+  const n=CL.review.filter(r=>!r.dup&&!r.skip).length,d=CL.review.filter(r=>r.dup).length;
+  $("#clmRevSub").textContent=`${n} new line${n===1?"":"s"} to save${d?`, ${d} already saved (skipped)`:""}. Out lines start as Claim, in lines as Refund in. Change any that are wrong. Amounts with + came in, − went out.`;
+  $("#clmRevRows").innerHTML=CL.review.map((r,i)=>`<tr${r.dup||r.skip?' style="opacity:.45"':""}><td>${esc(r.date)}</td><td>${esc(r.desc)}${r.dup?" <small>· already saved</small>":""}</td><td class="r num${r.amt<0?" neg":""}">${sRM(r.amt)}</td><td>${tagSel(r.tag,`data-rtag="${i}"`)}</td><td><button class="pen" data-rskip="${i}" aria-label="Skip this line" title="Skip">×</button></td></tr>`).join("");
+  $("#clmSaveRev").textContent=`Save ${n} line${n===1?"":"s"}`}
+$("#clmCancelRev").onclick=()=>{CL.review=[];renderClmReview();status($("#clmStatus"),"")};
+$("#clmSaveRev").onclick=async()=>{const st=$("#clmRevStatus"),b=$("#clmSaveRev"),todo=CL.review.filter(r=>!r.dup&&!r.skip);if(!todo.length){status(st,"Nothing new to save.","err");return}
+  b.disabled=true;status(st,"Saving…");
+  try{await loadClaim();let matched=0;
+    for(const r of todo){let ref="";
+      if(r.amt>0){const a=CL.lines.find(x=>x.src==="auto"&&x.ref&&Math.abs(x.amt-r.amt)<0.005);if(a){ref=a.ref;await delLine(a);matched++}}
+      await addLine({date:r.date,desc:r.desc,amt:r.amt,tag:r.tag,ref,src:"statement"})}
+    CL.review=[];renderClmReview();renderClaim();status($("#clmStatus"),`${todo.length} lines saved${matched?`. ${matched} matched an automatic refund line, so it was not counted twice`:""}.`,"ok");status(st,"")}
+  catch(e){status(st,"Not saved: "+errText(e),"err")}b.disabled=false};
+
+/* ---------- the Claim account tab ---------- */
+function renderClaim(){if(!CL.on)return;
+  const ym=S.month?isoOf(S.month):"",mine=CL.all?CL.lines:CL.lines.filter(l=>!l.date||l.date.slice(0,7)===ym);
+  const bal=clBal(),inn=mine.filter(l=>l.amt>0).reduce((s,l)=>s+l.amt,0),oc=-mine.filter(l=>l.amt<0&&l.tag==="Claim").reduce((s,l)=>s+l.amt,0),
+    op=-mine.filter(l=>l.amt<0&&l.tag==="Personal").reduce((s,l)=>s+l.amt,0),oo=-mine.filter(l=>l.amt<0&&l.tag!=="Claim"&&l.tag!=="Personal").reduce((s,l)=>s+l.amt,0);
+  $("#clmTitle").textContent=CL.name;if(document.activeElement!==$("#clmName"))$("#clmName").value=CL.name==="Bank Islam"?"":CL.name;if(document.activeElement!==$("#clmOpen"))$("#clmOpen").value=CL.open||"";
+  $("#clmLabel").textContent=CL.name+" balance now";$("#clmBal").textContent=RM(bal);$("#clmEq").textContent=`${RM(CL.open)} opening ${sRM(CL.lines.reduce((s,l)=>s+l.amt,0))} lines`;
+  $("#clmMonthLbl").textContent=CL.all?"All months":S.month||"This month";$("#clmIn").textContent=RM(inn);$("#clmOutC").textContent=RM(oc);$("#clmOutP").textContent=RM(op);$("#clmOutO").textContent=RM(oo);
+  $("#clmWarn").textContent=op>0?`${RM(op)} of claim money was used personally ${CL.all?"in total":"in "+S.month}. Put it back, or it will be short when the claim is due.`:(bal<0?"The claim account is below zero. Check the opening balance and the lines.":"");
+  $("#clmWarn").className="note"+(op>0||bal<0?" neg":"");
+  $("#clmLinesTitle").textContent="Lines · "+(CL.all?"all months":S.month||"this month");$("#clmAllBtn").textContent=CL.all?"Show this month only":"Show all months";
+  const tg=$("#clmNTag");if(!tg.options.length)tg.innerHTML=CLTAGS.map(t=>`<option>${t}</option>`).join("");
+  const sorted=[...mine].sort((a,b)=>(a.date||"").localeCompare(b.date||"")||a.row-b.row);
+  $("#clmRows").innerHTML=sorted.map(l=>`<tr><td>${esc(l.date)}</td><td>${esc(l.desc)}${l.src==="auto"?" <small>· automatic</small>":""}</td><td class="r num${l.amt<0?" neg":""}">${sRM(l.amt)}</td><td>${tagSel(l.tag,`data-ltag="${l.row}"`)}</td><td><button class="pen" data-ldel="${l.row}" aria-label="Delete line" title="Delete">×</button></td></tr>`).join("")||`<tr><td colspan="5" class="sub">No lines ${CL.all?"yet":"for "+esc(S.month||"this month")+" yet"}. Upload a statement or add one above.</td></tr>`}
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset.rtag!=null){CL.review[+t.dataset.rtag].tag=t.value;return}
+  if(t.dataset.ltag!=null){const l=CL.lines.find(x=>x.row===+t.dataset.ltag);if(!l)return;const old=l.tag;l.tag=t.value;renderClaim();
+    try{await saveLine(l);status($("#clmLinesStatus"),"Saved.","ok")}catch(err){l.tag=old;renderClaim();status($("#clmLinesStatus"),"Not saved: "+errText(err),"err")}return}
+  if(t.id==="clmName"||t.id==="clmOpen"){CL.name=$("#clmName").value.trim()||"Bank Islam";CL.open=num($("#clmOpen").value);renderClaim();
+    try{await put("C20:C21",[[CL.name],[CL.open||""]],"Settings");status($("#clmLinesStatus"),"Saved.","ok")}catch(err){status($("#clmLinesStatus"),"Not saved: "+errText(err),"err")}return}
+  if(t.id==="claimUse")await setClaimOn(t.checked)});
+document.addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.dataset.clmrm!=null){CL.files.splice(+b.dataset.clmrm,1);setClmFiles([]);return}
+  if(b.dataset.rskip!=null){const r=CL.review[+b.dataset.rskip];r.skip=!r.skip;renderClmReview();return}
+  if(b.dataset.ldel!=null){const l=CL.lines.find(x=>x.row===+b.dataset.ldel);if(!l)return;
+    if(!b.dataset.armed){b.dataset.armed=1;b.textContent="Sure?";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="×"}},3000);return}
+    try{await delLine(l);renderClaim();status($("#clmLinesStatus"),"Deleted.","ok")}catch(err){status($("#clmLinesStatus"),"Not deleted: "+errText(err),"err")}return}
+  if(b.id==="clmAllBtn"){CL.all=!CL.all;renderClaim();return}
+  if(b.id==="clmNAdd"){const amt=Math.round(num($("#clmNAmt").value)*100)/100,desc=$("#clmNDesc").value.trim(),dir=+$("#clmNDir").value,st=$("#clmLinesStatus");
+    if(!desc||!(amt>0)){status(st,"Enter a description and an amount.","err");return}
+    try{await loadClaim();await addLine({date:$("#clmNDate").value||todayIso(),desc,amt:dir*amt,tag:$("#clmNTag").value,ref:"",src:"manual"});$("#clmNDesc").value="";$("#clmNAmt").value="";renderClaim();status(st,"Added.","ok")}catch(err){status(st,"Not saved: "+errText(err),"err")}return}
+  if(b.id==="clmRemove"){if(!b.dataset.armed){b.dataset.armed=1;b.textContent="Click again to remove";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Remove claim section"}},4000);return}
+    delete b.dataset.armed;b.textContent="Remove claim section";await setClaimOn(false)}});
+async function setClaimOn(on){const was=CL.on;CL.on=on;buildTabs();$("#claimUse").checked=on;
+  try{await put("C19",[[on?"":"OFF"]],"Settings")}catch(err){CL.on=was;buildTabs();$("#claimUse").checked=was;status($("#clStatus"),"Not saved: "+errText(err),"err");return}
+  if(!on&&S.tab==="claim")showTab("check");else $$("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===S.tab));
+  renderIncome();renderChecklist();renderCats();if(S.tab==="health")renderHealth();if(on)await syncClaimItem()}
 
 /* ---------- upload ---------- */
 function setFiles(list){for(const f of list)S.files.push(f);$("#fileList").innerHTML=S.files.map((f,i)=>`<span>${esc(f.name||"photo")} <button data-rm="${i}" style="padding:0 6px;border:0" aria-label="Remove">×</button></span>`).join("");updateReadBtn()}
@@ -1771,7 +1973,7 @@ function face(level){const col={good:"#23845A",warn:"#B7790A",crit:"#BF3B26"}[le
   const mouth={good:"M38 66 Q50 78 62 66",warn:"M38 70 L62 70",crit:"M38 74 Q50 62 62 74"}[level];
   return `<svg class="face" viewBox="0 0 100 100" role="img" aria-label="${level}"><circle cx="50" cy="50" r="46" fill="${col}22" stroke="${col}" stroke-width="5"/><circle cx="36" cy="42" r="5" fill="${col}"/><circle cx="64" cy="42" r="5" fill="${col}"/><path d="${mouth}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round"/></svg>`}
 function health(){
-  const c=calc(),inc=M.sal,th=Math.max(1,inc-c.tax),buffer=inc-c.tot-c.persOut,living=c.tot-c.tax-c.save-c.inv,efm=living>0?M.ef/living:0;
+  const c=calc(),inc=M.sal,th=Math.max(1,inc-c.tax),buffer=incTot()-c.tot-c.persOut,living=c.tot-c.tax-c.save-c.inv-c.refund,efm=living>0?M.ef/living:0;
   const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
   const parts=[
     {k:"Money left after everything",v:RM(buffer),g:cl((buffer/th)/0.10,0,1)*25,max:25,t:"10% of take-home or more"},
@@ -1793,7 +1995,7 @@ function rules(h){const A=[],add=(sev,title,body,act,src)=>A.push({sev,title,bod
   if(sv.length&&sv.some(i=>!i.paid)&&fr)add("warn","You paid the fun before yourself","Guilt-free items are ticked while savings are still unpaid.","Make savings the first transfer on salary day.","Robert Kiyosaki, Rich Dad Poor Dad, “Pay yourself first”");
   const subs=M.items.filter(i=>i.cat==="Subscriptions").reduce((s,i)=>s+i.amt,0);if(subs>100)add("warn","Subscriptions on autopilot",`${RM(subs)} a month (${RM0(subs*12)} a year).`,"Keep the ones you use every week and cancel the rest.","Money Hacks, “Streamline Your Subscriptions”");
   if(c.claim>th*0.2)add("warn","You're lending your employer money",`${RM(c.claim)} in claims not yet paid back.`,"Submit claims the week you spend, and still pay the card in full.","Ramit Sethi, ch. 1");
-  if(c.pers>c.free*0.5&&c.pers>0)add(c.pers>c.free?"crit":"warn","Card spending outside the plan",`Personal card spending is ${RM(c.pers)}, on top of ${RM(c.free)} budgeted as guilt-free.`,"Wait 30 days before any non-essential buy above RM100.","Money Hacks; Ramit Sethi, ch. 4");
+  if(!M.cardOff&&c.pers>c.free*0.5&&c.pers>0)add(c.pers>c.free?"crit":"warn","Card spending outside the plan",`Personal card spending is ${RM(c.pers)}, on top of ${RM(c.free)} budgeted as guilt-free.`,"Wait 30 days before any non-essential buy above RM100.","Money Hacks; Ramit Sethi, ch. 4");
   const fin=F.pots.reduce((s,x)=>s+potCalc(x).recv,0);if(fin>0)add("good","Future money is planned",`${RM(fin)} expected outside salary. Give every ringgit a job before it arrives.`,"Put at least half into the emergency fund, investing or debt.","Morgan Housel, ch. 10 “Save Money”");
   if((c.save+c.inv)/th>=0.15)add("good","Savings rate is healthy",`${((c.save+c.inv)/th*100).toFixed(1)}% of take-home is saved or invested.`,"Raise it 1% with every pay rise.","Morgan Housel, ch. 10");
   add("good","Your biggest lever is income","Cutting finds a few hundred ringgit. A promotion, certification or side skill can add thousands.","Block two focused hours a week for the skill that pays most.","Cal Newport, Deep Work, ch. 1");
@@ -1897,8 +2099,8 @@ function incNet(){return num($("#incBasic").value)+num($("#incAllow").value)+num
 function renderIncEq(){const b=num($("#incBasic").value),a=num($("#incAllow").value),o=num($("#incOT").value),d=incDedNow();
   $("#incEq").innerHTML=`<span>${RM(b)} basic + ${RM(a)} allowance + ${RM(o)} OT − ${RM(d)} deductions =</span><b>${RM(b+a+o-d)}</b><span>take-home${S.month?" for "+esc(S.month):""}</span>`;
   $("#incTitle").textContent="Income"+(S.month?" · "+S.month:"");$("#incMonthName").textContent=S.month||"this month";$("#incSave").textContent=S.month?"Save income for "+S.month:"Save income";renderDedNote("inc")}
-function renderIncome(){if(!S.inc)return;const f=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#incCard");
-  if(!f){$("#incBasic").value=S.inc.basic||"";$("#incAllow").value=S.inc.allow||"";$("#incDed").value=S.inc.ded||"";$("#incOT").value=M.ot||"";INC.dirty=(M.dedm!==""&&M.dedm!=null);$("#incDedM").value=INC.dirty?M.dedm:(dedDefault()||"")}
+function renderIncome(){$("#claimUse").checked=CL.on;$("#incClaimLbl").hidden=!CL.on;$("#incClaimNote").hidden=!CL.on;if(!S.inc)return;const f=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#incCard");
+  if(!f){$("#incBasic").value=S.inc.basic||"";$("#incAllow").value=S.inc.allow||"";$("#incDed").value=S.inc.ded||"";$("#incOT").value=M.ot||"";$("#incClaim").value=M.claim||"";INC.dirty=(M.dedm!==""&&M.dedm!=null);$("#incDedM").value=INC.dirty?M.dedm:(dedDefault()||"")}
   renderIncEq();renderMove()}
 function renderMove(){const rows=M.items.filter(x=>x.type==="EPF / tax"),t=rows.reduce((s,x)=>s+x.amt,0),box=$("#incMove");
   if(!rows.length){box.innerHTML="";return}
@@ -1909,11 +2111,13 @@ function renderMove(){const rows=M.items.filter(x=>x.type==="EPF / tax"),t=rows.
 async function saveIncome(vals){
   await put("C5:C6",[[vals.basic],[vals.allow]],"Settings");await put("C9",[[vals.ded]],"Settings");
   if(S.month&&vals.ot!=null){await put("P4:P5",[[vals.ot||""],[vals.dedm===""||vals.dedm==null?"":vals.dedm]]);M.ot=vals.ot||0;M.dedm=vals.dedm===""||vals.dedm==null?"":vals.dedm}
+  if(S.month&&CL.on){const cl=num($("#incClaim").value);await put("P7",[[cl||""]]);M.claim=cl}
   S.inc=vals;const sv=await get("B4:C6");M.sal=num((sv[2]||[])[1]);
+  if(CL.on)setTimeout(syncClaimItem,0);
   if(F.loaded&&F.pots.some(p=>p.basis)){F.pots.forEach(applyBasis);if(S.tab==="future")renderFuture();await saveFuture(true)}
 }
 document.addEventListener("input",e=>{if(e.target.id==="incDedM")INC.dirty=true;else if(["incBasic","incAllow","incDed","incOT"].includes(e.target.id)&&!INC.dirty)$("#incDedM").value=dedDefault()||"";
-  if(["incBasic","incAllow","incDed","incOT","incDedM"].includes(e.target.id)){renderIncEq();status($("#incStatus"),"Not saved yet");}});
+  if(["incBasic","incAllow","incDed","incOT","incDedM","incClaim"].includes(e.target.id)){renderIncEq();status($("#incStatus"),"Not saved yet");}});
 $("#incSave").onclick=async()=>{const b=$("#incSave"),st=$("#incStatus"),v={basic:num($("#incBasic").value),allow:num($("#incAllow").value),ded:S.mode==="manual"?num($("#incDed").value):statCalc(num($("#incBasic").value)+num($("#incAllow").value),S.prof,yrOf(S.month)).total,ot:num($("#incOT").value),dedm:INC.dirty&&$("#incDedM").value!==""?num($("#incDedM").value):""};
   if(!(v.basic>0)){$("#incBasic").classList.add("bad");status(st,"Enter your basic salary.","err");return}$("#incBasic").classList.remove("bad");
   if(incDedNow()>=v.basic+v.allow+v.ot){status(st,"Deductions can't be more than your income. Check the numbers.","err");return}
@@ -1981,7 +2185,7 @@ async function moveItem(row,dir){const L=listOf(),x=L.find(i=>i.row===row);if(!x
   try{await compactCurrent(L);renderChecklist();queueSync();status($("#clStatus"),"Order saved.","ok")}catch(e){status($("#clStatus"),"Not saved: "+errText(e),"err")}}
 async function setAll(on){if(!M.items.length)return;const st=$("#clStatus");const old=M.items.map(x=>x.paid);
   M.items.forEach(x=>x.paid=on);M.lastTick=null;renderChecklist();renderCats();
-  try{const max=Math.max(...M.items.map(i=>i.row));await put("A"+FR+":A"+max,Array.from({length:max-FR+1},(_,i)=>{const x=M.items.find(y=>y.row===FR+i);return[x?on:""]}));status(st,on?"All ticked.":"All unticked.","ok")}
+  try{const max=Math.max(...M.items.map(i=>i.row));await put("A"+FR+":A"+max,Array.from({length:max-FR+1},(_,i)=>{const x=M.items.find(y=>y.row===FR+i);return[x?on:""]}));status(st,on?"All ticked.":"All unticked.","ok");reconcileRefund()}
   catch(e){M.items.forEach((x,i)=>x.paid=old[i]);renderChecklist();renderCats();status(st,"Not saved: "+errText(e),"err")}}
 function armBtn(b,label,txt){if(b.classList.contains("armed")){b.classList.remove("armed");b.textContent=label;return true}
   b.classList.add("armed");b.textContent=txt;setTimeout(()=>{if(b.isConnected&&b.classList.contains("armed")){b.classList.remove("armed");b.textContent=label}},4000);return false}
@@ -1993,12 +2197,12 @@ function clearBtn(id,label,fn){const b=$("#"+id);if(!b)return;
   b.onclick=async()=>{if(!armBtn(b,label,"Tap again to delete"))return;b.disabled=true;try{await fn()}catch(e){const s=$("#"+(b.dataset.st||"clStatus"));if(s)status(s,"Not cleared: "+(e.code?errText(e):(e.message||"try again")),"err")}b.disabled=false}}
 const NOTE=" It can't be undone, but 'Open a saved file' brings back your last saved copy.";
 clearBtn("clrCheck","Clear this month",async()=>{if(!S.month)return;await wchain;
-  await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(S.month)+"!A"+FR+":F400",q(S.month)+"!P4:P5",q("Commitments")+"!A4:D300"]});
+  await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(S.month)+"!A"+FR+":F400",q(S.month)+"!P4:P7",q("Commitments")+"!A4:D300"]});
   M.lastTick=null;EDIT.row=null;await loadMonth();status($("#clStatus"),"Cleared the "+S.month+" checklist, OT and deductions."+NOTE,"ok")});
 $("#clrInc").dataset.st="incStatus";
 clearBtn("clrInc","Clear income",async()=>{await wchain;
   await put("C5:C6",[[0],[0]],"Settings");await put("C9",[[0]],"Settings");
-  if(S.month)await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(S.month)+"!P4:P5"]});
+  if(S.month)await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(S.month)+"!P4:P7"]});
   S.inc={basic:0,allow:0,ded:0};M.ot=0;M.dedm="";INC.dirty=false;
   if(F.loaded&&F.pots.some(p=>p.basis)){F.pots.forEach(applyBasis);if(S.tab==="future")renderFuture();await saveFuture(true)}
   await loadMonth();status($("#incStatus"),"Cleared basic salary, allowance, OT and deductions. Type new figures and press Save."+NOTE,"ok")});
