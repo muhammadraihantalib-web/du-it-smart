@@ -175,6 +175,7 @@ select.typ{padding:4px 8px;font-size:12.5px;border-radius:8px}
 .pmeta input[readonly]{background:var(--sunk);color:var(--ink)}
 .pbasis{font-size:12.5px;color:var(--muted);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap;align-items:center}
 .pbasis label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+#fcRows td{white-space:nowrap}
 .incgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
 .incgrid label{display:block;font-size:13px;font-weight:600}
 .incgrid label>input{display:block;width:100%;margin-top:6px;font-size:16px;text-align:right}
@@ -978,6 +979,25 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
     <div class="row"><button class="primary" id="fAddPot">+ Add money coming in</button><span class="note">Everything saves to the Future Money tab in your sheet as you type.</span></div>
   </div>
 
+  <div id="v-forecast" class="wrap" style="gap:16px" hidden>
+    <section class="card" id="fcCard">
+      <div class="row"><h2>Salary forecast</h2><span class="spacer"></span><span class="status" id="fcStatus"></span></div>
+      <div class="sub">See where your pay could be in the coming years. Set the raise for every year on its own, for example 3% one year and 4% the next. Leave a year empty to use the default.</div>
+      <div class="incgrid">
+        <label>First year<input id="fcStart" type="number" step="1" min="2000" max="2100" inputmode="numeric"></label>
+        <label>Years to forecast<input id="fcN" type="number" step="1" min="1" max="30" inputmode="numeric"></label>
+        <label>Basic now (RM)<input id="fcBase" type="number" step="0.01" min="0" inputmode="decimal" placeholder="from your income"></label>
+        <label>Default raise (% a year)<input id="fcDef" type="number" step="0.1" min="0" inputmode="decimal"></label>
+      </div>
+      <div class="row"><button id="fcAll">Use the default for every year</button><span class="note">Each year's raise is added on top of the year before. Your fixed allowance stays the same.</span></div>
+      <div class="tside" id="fcSum" style="display:grid;gap:6px;background:var(--sunk);border-radius:12px;padding:12px 14px"></div>
+      <div id="fcChart"></div>
+      <div id="fcBody"></div>
+      <div class="tablewrap"><table><thead><tr><th>Year</th><th>Raise</th><th class="r">Basic</th><th class="r">Up by</th><th class="r">Gross</th><th class="r">Deductions</th><th class="r">Take-home a month</th><th class="r">Take-home a year</th></tr></thead><tbody id="fcRows"></tbody></table></div>
+      <div class="note">An estimate only. Deductions use the EPF, SOCSO, EIS and PCB rules built into this page, and the 2027 rules are used for every year after 2027, so later PCB may differ. Tax status comes from Profile &amp; setup. Bonus, OT and allowance changes are not included.</div>
+    </section>
+  </div>
+
   <!-- SAVINGS TAB -->
   <div id="v-savings" class="wrap" style="gap:16px" hidden>
     <section class="card">
@@ -1107,7 +1127,7 @@ const cs=c=>CATSTYLE[c]||CATSTYLE.Other, ps=c=>PLANSTYLE[c]||PLANSTYLE.Other;
 const icon=([k,c])=>`<span class="ic" style="background:${c}1f;color:${c}">${svg(k,c)}</span>`;
 const incIcon=n=>/perform|kpi/i.test(n)?["star","#C98316"]:/bonus|incentive/i.test(n)?["gift","#B5487E"]:/divid|asb|asnb|unit|saham|share/i.test(n)?["sprout","#2C9C9C"]:["coins","#0E6B5C"];
 function buildTabs(){if(!CL.on&&S.tab==="claim")S.tab="check";
-  $("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],...(CL.on?[["claim","bank","Claim account"]]:[]),["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["health","pulse","Health check"]]
+  $("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],...(CL.on?[["claim","bank","Claim account"]]:[]),["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["forecast","trend","Salary forecast"],["health","pulse","Health check"]]
   .map(([t,i,l])=>`<button role="tab" data-tab="${t}" aria-selected="${t===S.tab}">${svg(i)}${l}</button>`).join("")}
 buildTabs();
 
@@ -1186,12 +1206,13 @@ $("#copyBtn").onclick=async()=>{const name=$("#nameIn").value.trim()||"Me",b=$("
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;ls.set("md.tab",t);$("#v-setup").hidden=true;$("#tabs").hidden=!S.id;$$("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
-  ["check","card","claim","future","savings","yearly","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
+  ["check","card","claim","future","savings","yearly","forecast","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
   if(t==="claim"&&S.id){loadClaim().then(renderClaim).catch(e=>status($("#clmStatus"),errText(e),"err"));renderClaim()}
   if(t==="savings"&&S.id)loadSavings();
   if(t==="card"&&S.id&&!CD.loaded)loadCards();
   if(t==="future"&&S.id&&!F.loaded)loadFuture();
   if(t==="yearly"&&S.id&&!Y.loaded)loadYearly();
+  if(t==="forecast"&&S.id){loadForecast().then(renderForecast).catch(()=>{});renderForecast()}
   if(t==="health")renderHealth()}
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)showTab(b.dataset.tab)});
 
@@ -1558,6 +1579,38 @@ async function setClaimOn(on){const was=CL.on;CL.on=on;buildTabs();$("#claimUse"
   try{await put("C19",[[on?"":"OFF"]],"Settings")}catch(err){CL.on=was;buildTabs();$("#claimUse").checked=was;status($("#clStatus"),"Not saved: "+errText(err),"err");return}
   if(!on&&S.tab==="claim")showTab("check");else $$("#tabs button").forEach(x=>x.setAttribute("aria-selected",x.dataset.tab===S.tab));
   renderIncome();renderChecklist();renderCats();if(S.tab==="health")renderHealth();if(on)await syncClaimItem()}
+
+/* ---------- salary forecast: a different raise % for every year, with a chart ---------- */
+const FC={loaded:false,start:0,n:10,base:0,def:3,pct:{}};
+async function loadForecast(){if(FC.loaded)return;
+  try{const v=await get("C22","Settings"),j=JSON.parse(((v[0]||[])[0])||"{}");Object.assign(FC,{start:+j.start||0,n:Math.min(30,Math.max(1,+j.n||10)),base:+j.base||0,def:j.def!=null&&isFinite(+j.def)?+j.def:3,pct:j.pct&&typeof j.pct==="object"?j.pct:{}})}catch(e){}
+  FC.loaded=true}
+async function saveForecast(){try{await put("C22",[[JSON.stringify({start:FC.start,n:FC.n,base:FC.base,def:FC.def,pct:FC.pct})]],"Settings");status($("#fcStatus"),"Saved.","ok")}catch(e){status($("#fcStatus"),"Not saved: "+errText(e),"err")}}
+const fcYear0=()=>FC.start||(new Date().getFullYear()+1);
+function fcRows(){const inc=S.inc||{basic:0,allow:0},base=FC.base||inc.basic||0,allow=inc.allow||0,y0=fcYear0(),rows=[];let b=base;
+  for(let i=0;i<FC.n;i++){const y=y0+i,p=FC.pct[y]!=null&&isFinite(+FC.pct[y])?+FC.pct[y]:FC.def,nb=Math.round(b*(1+p/100)*100)/100,gross=nb+allow,
+      d=statCalc(gross,S.prof,y).total,flat=base+allow-statCalc(base+allow,S.prof,y).total;
+    rows.push({y,p,custom:FC.pct[y]!=null&&isFinite(+FC.pct[y]),basic:nb,inc:nb-b,gross,ded:d,th:gross-d,flat});b=nb}
+  return{base,allow,rows}}
+function fcChart(base,allow,rows){
+  const W=720,H=300,L=62,R=24,T=20,B=44,pts=[{l:"Now",basic:base,th:base+allow-statCalc(base+allow,S.prof,new Date().getFullYear()).total},...rows.map(r=>({l:String(r.y),basic:r.basic,th:r.th}))];
+  const all=pts.flatMap(p=>[p.basic,p.th]),lo=Math.floor(Math.min(...all)*0.9/500)*500,hi=Math.ceil(Math.max(...all)*1.05/500)*500,x=i=>L+(W-L-R)*(pts.length>1?i/(pts.length-1):0),y=v=>T+(H-T-B)*(1-(v-lo)/Math.max(1,hi-lo));
+  const grid=[0,1,2,3,4].map(k=>{const v=lo+(hi-lo)*k/4;return`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" opacity=".12"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="currentColor" opacity=".65">${Math.round(v).toLocaleString("en-MY")}</text>`}).join("");
+  const step=Math.ceil(pts.length/11),xl=pts.map((p,i)=>i%step===0||i===pts.length-1?`<text x="${x(i)}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">${p.l}</text>`:"").join("");
+  const line=(k,c)=>`<polyline fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" points="${pts.map((p,i)=>x(i)+","+y(p[k])).join(" ")}"/>`+pts.map((p,i)=>`<circle cx="${x(i)}" cy="${y(p[k])}" r="3.5" fill="${c}"><title>${p.l}: RM ${p[k].toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2})}</title></circle>`).join("");
+  const last=pts[pts.length-1],lab=(k,c,dy)=>`<text x="${x(pts.length-1)}" y="${y(last[k])+dy}" text-anchor="end" font-size="12" font-weight="600" fill="${c}">${Math.round(last[k]).toLocaleString("en-MY")}</text>`;
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Forecast of monthly basic salary and take-home by year" style="width:100%;height:auto;color:var(--ink)">${grid}${xl}${line("basic","#1D5FA5")}${line("th","#1D9E75")}${lab("basic","#1D5FA5",-9)}${lab("th","#1D9E75",18)}</svg>`}
+function renderForecast(){const box=$("#fcBody");if(!S.inc||!(S.inc.basic>0||FC.base>0)){box.innerHTML=`<div class="sub">Enter your basic salary in the Checklist tab (Income box) first. The forecast starts from it.</div>`;return}
+  const f=document.activeElement&&document.activeElement.closest&&document.activeElement.closest("#fcCard");if(!f){$("#fcStart").value=fcYear0();$("#fcN").value=FC.n;$("#fcBase").value=FC.base||"";$("#fcBase").placeholder=S.inc.basic?String(S.inc.basic):"";$("#fcDef").value=FC.def}
+  const {base,allow,rows}=fcRows(),last=rows[rows.length-1],thNow=base+allow-statCalc(base+allow,S.prof,new Date().getFullYear()).total,extra=rows.reduce((s,r)=>s+12*(r.th-r.flat),0);
+  $("#fcSum").innerHTML=`<div class="kv"><span>Basic now</span><b>${RM(base)}</b></div><div class="kv"><span>Basic in ${last.y}</span><b>${RM(last.basic)}</b></div><div class="kv big"><span>Total raise over ${rows.length} year${rows.length===1?"":"s"}</span><b>+ ${((last.basic/base-1)*100).toFixed(1)}%</b></div><div class="kv"><span>Take-home now → ${last.y} (a month)</span><b>${RM(thNow)} → ${RM(last.th)}</b></div><div class="kv"><span>Extra take-home earned from the raises</span><b>${RM(extra)}</b></div>`;
+  $("#fcChart").innerHTML=fcChart(base,allow,rows)+`<div class="note" style="display:flex;gap:16px;flex-wrap:wrap"><span><b style="color:#1D5FA5">●</b> Basic salary a month</span><span><b style="color:#1D9E75">●</b> Take-home a month (after EPF, SOCSO, EIS and PCB)</span></div>`;
+  $("#fcRows").innerHTML=rows.map(r=>`<tr><td><b>${r.y}</b></td><td><input type="number" step="0.1" min="0" inputmode="decimal" data-fcy="${r.y}" value="${r.custom?r.p:""}" placeholder="${r.p}" style="width:78px;text-align:right" aria-label="Raise percent for ${r.y}"> %</td><td class="r num">${r.basic.toFixed(2)}</td><td class="r num">+ ${r.inc.toFixed(2)}</td><td class="r num">${r.gross.toFixed(2)}</td><td class="r num">− ${r.ded.toFixed(2)}</td><td class="r num"><b>${r.th.toFixed(2)}</b></td><td class="r num">${(r.th*12).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2})}</td></tr>`).join("")}
+document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset.fcy!=null){const y=t.dataset.fcy;if(t.value==="")delete FC.pct[y];else FC.pct[y]=Math.max(0,num(t.value));renderForecast();await saveForecast();return}
+  if(t.id==="fcStart"||t.id==="fcN"||t.id==="fcBase"||t.id==="fcDef"){const s=Math.round(num($("#fcStart").value)),n=Math.round(num($("#fcN").value));
+    FC.start=s>=2000&&s<=2100?s:0;FC.n=Math.min(30,Math.max(1,n||10));FC.base=Math.max(0,num($("#fcBase").value));FC.def=Math.max(0,num($("#fcDef").value));renderForecast();await saveForecast()}});
+document.addEventListener("click",async e=>{const b=e.target.closest("#fcAll");if(!b)return;FC.pct={};renderForecast();await saveForecast();status($("#fcStatus"),"Every year now uses "+FC.def+"%.","ok")});
 
 /* ---------- upload ---------- */
 function setFiles(list){for(const f of list)S.files.push(f);$("#fileList").innerHTML=S.files.map((f,i)=>`<span>${esc(f.name||"photo")} <button data-rm="${i}" style="padding:0 6px;border:0" aria-label="Remove">×</button></span>`).join("");updateReadBtn()}
