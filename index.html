@@ -118,6 +118,20 @@ details summary{cursor:pointer;font-weight:600;font-size:14px}
 .tick:checked::after{content:"";width:6px;height:11px;border:solid var(--accent-ink);border-width:0 3px 3px 0;transform:rotate(45deg) translate(-1px,-1px)}
 .nm{overflow-wrap:anywhere;cursor:pointer} .nm small{color:var(--muted)}
 .amt{font-family:var(--f-mono)}
+.nums{display:grid;grid-template-columns:78px 98px;gap:8px;align-items:center;justify-items:end}
+.nums .act{width:98px;font-size:14px;text-align:right;padding:6px 8px;font-family:var(--f-mono)}
+.nums .act.over{color:var(--crit);border-color:var(--crit)}.nums .act.under{color:var(--good);border-color:var(--good)}
+.item.hd{font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);padding-top:2px;padding-bottom:2px}.item.hd:hover{background:none}
+.item.hd .nums span{text-align:right;width:100%}
+.tside .kv span{flex:1}.tside .kv b{min-width:108px;text-align:right}.tside .kv.hd{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+@media (max-width:640px){.item{grid-template-columns:auto minmax(0,1fr) auto;gap:4px 10px}
+.item>.tick{grid-row:1/3;align-self:start;margin-top:2px}
+.item .nm{grid-column:2;grid-row:1}
+.item>[data-edit]{grid-column:3;grid-row:1}
+.item .nums{grid-column:2;grid-row:2;justify-self:start;grid-template-columns:72px 100px;justify-items:start}
+.item .nums .amt{text-align:left}
+.item .mv{grid-column:3;grid-row:2;display:flex;justify-content:flex-end}
+.item.hd .nm{grid-column:2/-1}.item.hd .nums{grid-column:2/-1;grid-row:2;justify-self:start;justify-items:start}}
 .pen{border:0;background:transparent;color:var(--muted);padding:4px 8px;border-radius:8px;font-size:15px}
 .mv{display:inline-flex;gap:0}.mv .pen{font-size:11px;padding:4px 6px;opacity:.55}.mv .pen:hover{opacity:1}
 button.armed{background:var(--crit)!important;color:#fff!important;border-color:var(--crit)!important}
@@ -848,16 +862,18 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
           <div class="teq num" id="tEq"></div>
         </div>
         <div class="tside">
-          <div class="kv"><span>Total commitment</span><b id="tTot">–</b></div>
-          <div class="kv"><span>Ticked (deducted)</span><b id="tPaid">–</b></div>
-          <div class="kv big"><span>Balance after deduct</span><b id="tAfter">–</b></div>
+          <div class="kv hd"><span></span><b>Budget</b><b>Real</b></div>
+          <div class="kv"><span>Total commitment</span><b id="tTotB">–</b><b id="tTot">–</b></div>
+          <div class="kv"><span>Ticked (deducted)</span><b id="tPaidB">–</b><b id="tPaid">–</b></div>
+          <div class="kv big"><span>Balance after deduct</span><b id="tAfterB">–</b><b id="tAfter">–</b></div>
+          <div class="kv" id="tVarRow" hidden><span id="tVarLbl">Real vs budget</span><b></b><b id="tVar">–</b></div>
           <div class="tdiv"></div>
-          <div class="kv"><span>Net income (take-home)</span><b id="tSal">–</b></div>
-          <div class="kv" id="tClaimRow" hidden><span>Claim money in</span><b id="tClaimIn">–</b></div>
-          <div class="kv big"><span>Salary balance now</span><b id="tSalBal">–</b></div>
-          <div class="kv"><label style="display:flex;gap:7px;align-items:center;cursor:pointer" title="Untick if you paid this month's card bills from money that is not recorded here"><input type="checkbox" id="tCount" checked aria-label="Count personal card spending in this month"> Personal card spending</label><b id="tPers">–</b></div>
-          <div class="kv" id="tClaimCardRow" hidden><span>Card claims · paid from claim account</span><b id="tClaimCard">–</b></div>
-          <div class="kv"><span>Left after everything</span><b id="tLeft">–</b></div>
+          <div class="kv"><span>Net income (take-home)</span><b id="tSalB">–</b><b id="tSal">–</b></div>
+          <div class="kv" id="tClaimRow" hidden><span>Claim money in</span><b></b><b id="tClaimIn">–</b></div>
+          <div class="kv big"><span>Salary balance now</span><b id="tSalBalB">–</b><b id="tSalBal">–</b></div>
+          <div class="kv"><label style="display:flex;gap:7px;align-items:center;cursor:pointer" title="Untick if you paid this month's card bills from money that is not recorded here"><input type="checkbox" id="tCount" checked aria-label="Count personal card spending in this month"> Personal card spending</label><b></b><b id="tPers">–</b></div>
+          <div class="kv" id="tClaimCardRow" hidden><span>Card claims · paid from claim account</span><b></b><b id="tClaimCard">–</b></div>
+          <div class="kv"><span>Left after everything</span><b id="tLeftB">–</b><b id="tLeft">–</b></div>
         </div>
         <div class="tbar"><i id="tBar"></i></div>
         <div class="tlast num" id="tLast">Tick a box to deduct it.</div>
@@ -998,6 +1014,18 @@ button.clr{color:#BF3B26;border-color:#E3B5AB}
     </section>
   </div>
 
+  <div id="v-whatif" class="wrap" style="gap:16px" hidden>
+    <section class="card">
+      <div class="row"><h2>What-if</h2><span class="spacer"></span><span class="status" id="wiStatus"></span></div>
+      <div class="sub">Try a big change on a copy, like buying a car or changing company. Your real checklist and income are never touched. Start from a copy of your current profile, change what you want, then see if you can still cope.</div>
+      <div class="row" style="flex-wrap:wrap"><select id="wiPick" aria-label="Choose a scenario"></select><button class="primary" id="wiNew">+ New from my current profile</button><button id="wiDup">Duplicate</button><button id="wiDel" class="clr">Delete</button></div>
+    </section>
+    <div id="wiEdit" style="display:grid;gap:16px"></div>
+    <div id="wiGone" style="display:grid;gap:16px"></div>
+    <div id="wiRes" style="display:grid;gap:16px"></div>
+    <div id="wiSaved" style="display:grid;gap:16px"></div>
+  </div>
+
   <!-- SAVINGS TAB -->
   <div id="v-savings" class="wrap" style="gap:16px" hidden>
     <section class="card">
@@ -1127,7 +1155,7 @@ const cs=c=>CATSTYLE[c]||CATSTYLE.Other, ps=c=>PLANSTYLE[c]||PLANSTYLE.Other;
 const icon=([k,c])=>`<span class="ic" style="background:${c}1f;color:${c}">${svg(k,c)}</span>`;
 const incIcon=n=>/perform|kpi/i.test(n)?["star","#C98316"]:/bonus|incentive/i.test(n)?["gift","#B5487E"]:/divid|asb|asnb|unit|saham|share/i.test(n)?["sprout","#2C9C9C"]:["coins","#0E6B5C"];
 function buildTabs(){if(!CL.on&&S.tab==="claim")S.tab="check";
-  $("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],...(CL.on?[["claim","bank","Claim account"]]:[]),["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["forecast","trend","Salary forecast"],["health","pulse","Health check"]]
+  $("#tabs").innerHTML=[["check","list","Checklist"],["card","card","Credit card"],...(CL.on?[["claim","bank","Claim account"]]:[]),["future","coins","Future money"],["savings","piggy","Savings"],["yearly","cal","Yearly commitments"],["forecast","trend","Salary forecast"],["whatif","umbrella","What-if"],["health","pulse","Health check"]]
   .map(([t,i,l])=>`<button role="tab" data-tab="${t}" aria-selected="${t===S.tab}">${svg(i)}${l}</button>`).join("")}
 buildTabs();
 
@@ -1206,12 +1234,13 @@ $("#copyBtn").onclick=async()=>{const name=$("#nameIn").value.trim()||"Me",b=$("
 
 /* ---------- tabs ---------- */
 function showTab(t){S.tab=t;ls.set("md.tab",t);$("#v-setup").hidden=true;$("#tabs").hidden=!S.id;$$("#tabs button").forEach(b=>b.setAttribute("aria-selected",b.dataset.tab===t));
-  ["check","card","claim","future","savings","yearly","forecast","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
+  ["check","card","claim","future","savings","yearly","forecast","whatif","health"].forEach(v=>$("#v-"+v).hidden=v!==t||!S.id);
   if(t==="claim"&&S.id){loadClaim().then(renderClaim).catch(e=>status($("#clmStatus"),errText(e),"err"));renderClaim()}
   if(t==="savings"&&S.id)loadSavings();
   if(t==="card"&&S.id&&!CD.loaded)loadCards();
   if(t==="future"&&S.id&&!F.loaded)loadFuture();
   if(t==="yearly"&&S.id&&!Y.loaded)loadYearly();
+  if(t==="whatif"&&S.id){loadWhatIf().then(renderWhatIf).catch(e=>status($("#wiStatus"),errText(e),"err"));renderWhatIf()}
   if(t==="forecast"&&S.id){loadForecast().then(renderForecast).catch(()=>{});renderForecast()}
   if(t==="health")renderHealth()}
 $("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b)showTab(b.dataset.tab)});
@@ -1239,7 +1268,7 @@ async function createMonth(name,seed){
     await call(SHEETS,"update_spreadsheet",{spreadsheetId:S.id,requests:[{duplicateSheet:{sourceSheetId:src.sheetId,insertSheetIndex:src.index+(keyOf(name)>keyOf(srcName)?1:0),newSheetName:name}}]});
     const items=await get("B"+FR+":B400",name);
     if(items.length)await put("A"+FR+":A"+(FR+items.length-1),items.map(r=>[r[0]?false:""]),name);
-    await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(name)+"!H"+FR+":N400",q(name)+"!P4:P7"]});
+    await call(SHEETS,"batch_clear_values",{spreadsheetId:S.id,ranges:[q(name)+"!H"+FR+":N400",q(name)+"!F"+FR+":F400",q(name)+"!P4:P7"]});
   }else{
     const tpl=S.sheets.find(p=>p.title==="_Month");
     const com=seed||(await get("A4:D300","Commitments")).filter(r=>r[0]&&num(r[2])>0);
@@ -1284,7 +1313,7 @@ async function loadMonth(){
     M.ot=num((mi[0]||[])[0]);M.dedm=String(((mi[1]||[])[0])||"").trim()===""?"":num((mi[1]||[])[0]);
     M.items=[];M.spend=[];
     v.forEach((r,i)=>{const row=FR+i;
-      if(r[1])M.items.push({row,paid:String(r[0]).toUpperCase()==="TRUE",name:r[1],cat:r[2]||"Other",amt:num(r[3]),type:r[4]||""});
+      if(r[1])M.items.push({row,paid:String(r[0]).toUpperCase()==="TRUE",name:r[1],cat:r[2]||"Other",amt:num(r[3]),type:r[4]||"",act:String(r[5]==null?"":r[5]).trim()===""?null:num(r[5])});
       if(r[8])M.spend.push({row,date:r[7]||"",desc:r[8],amt:num(r[9]),src:r[10]||"",type:r[11]||"",cat:r[12]||""})});
     M.sal=num((sv[2]||[])[1]);M.ef=num(((ef[0]||[])[0]));
     status($("#clStatus"),"");renderAll();if(M.spend.length||M.items.some(i=>i.name===CCNAME||isOldLink(i)))syncCardItem(true);
@@ -1294,38 +1323,42 @@ async function loadMonth(){
 function renderAll(){renderIncome();renderChecklist();renderCats();renderSpend();if(S.tab==="health")renderHealth()}
 const liveItems=()=>M.items.filter(i=>!(M.cardOff&&i.name===CCNAME)&&!(!CL.on&&i.name===REFNAME));
 const incTot=()=>M.sal+(CL.on?M.claim:0);
-function calc(){const L=liveItems(),tot=L.reduce((s,x)=>s+x.amt,0),paid=L.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0);
+const eff=x=>x.act!=null?x.act:x.amt;
+function calc(){const L=liveItems(),totB=L.reduce((s,x)=>s+x.amt,0),paidB=L.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0),tot=L.reduce((s,x)=>s+eff(x),0),paid=L.filter(x=>x.paid).reduce((s,x)=>s+eff(x),0),nAct=L.filter(x=>x.act!=null).length;
   const pers=M.spend.filter(x=>x.type==="Personal").reduce((s,x)=>s+x.amt,0),claim=M.spend.filter(x=>x.type==="Claim").reduce((s,x)=>s+x.amt,0);
-  const by=t=>L.filter(x=>x.type===t).reduce((s,x)=>s+x.amt,0);
-  const persOut=M.cardOff||M.items.some(i=>i.name===CCNAME)?0:pers;return {tot,paid,left:tot-paid,pers,persOut,claim,n:L.length,np:L.filter(x=>x.paid).length,tax:by("EPF / tax"),save:by("Savings"),inv:by("Investment"),fixed:by("Fixed cost"),free:by("Guilt-free"),refund:L.filter(x=>x.name===REFNAME).reduce((s,x)=>s+x.amt,0)}}
+  const by=t=>L.filter(x=>x.type===t).reduce((s,x)=>s+eff(x),0);
+  const persOut=M.cardOff||M.items.some(i=>i.name===CCNAME)?0:pers;return {tot,paid,left:tot-paid,totB,paidB,leftB:totB-paidB,nAct,pers,persOut,claim,n:L.length,np:L.filter(x=>x.paid).length,tax:by("EPF / tax"),save:by("Savings"),inv:by("Investment"),fixed:by("Fixed cost"),free:by("Guilt-free"),refund:L.filter(x=>x.name===REFNAME).reduce((s,x)=>s+eff(x),0)}}
 
 /* ---------- checklist ---------- */
 function renderTally(){const c=calc();
   $("#clTitle").textContent="Checklist · "+(S.month||"");$("#tLabel").textContent=`Balance to pay · ${c.n-c.np} of ${c.n} left`;
   $("#tBal").textContent=RM(c.left);$("#tEq").textContent=`${RM(c.tot)} total − ${RM(c.paid)} ticked = ${RM(c.left)}`;
   $("#tTot").textContent=RM(c.tot);$("#tPaid").textContent="− "+RM(c.paid);$("#tAfter").textContent=RM(c.left);
-  $("#tSal").textContent=RM(M.sal);$("#tSalBal").textContent=RM(incTot()-c.paid);{const ci=CL.on&&M.claim>0;$("#tClaimRow").hidden=!ci;if(ci)$("#tClaimIn").textContent="+ "+RM(M.claim);$("#tClaimCardRow").hidden=!(c.claim>0);$("#tClaimCard").textContent=RM(c.claim)+" · not counted"}$("#tPers").textContent=RM(c.pers)+(M.cardOff?" · not counted":M.items.some(i=>i.name===CCNAME)?" · in list":"");const tc=$("#tCount");if(tc)tc.checked=!M.cardOff;
-  const lf=incTot()-c.tot-c.persOut;$("#tLeft").textContent=RM(lf);$("#tLeft").classList.toggle("neg",lf<0);
+  $("#tTotB").textContent=RM(c.totB);$("#tPaidB").textContent="− "+RM(c.paidB);$("#tAfterB").textContent=RM(c.leftB);{const d=Math.round((c.tot-c.totB)*100)/100;$("#tVarRow").hidden=!c.nAct;$("#tVarLbl").textContent=`Real vs budget · ${c.nAct} bill${c.nAct===1?"":"s"} entered`;$("#tVar").textContent=(d>0?"+ ":d<0?"− ":"")+RM(Math.abs(d))+(d>0?" over":d<0?" under":"");$("#tVar").classList.toggle("neg",d>0)}
+  $("#tSal").textContent=RM(M.sal);$("#tSalB").textContent=RM(M.sal);$("#tSalBal").textContent=RM(incTot()-c.paid);$("#tSalBalB").textContent=RM(incTot()-c.paidB);{const ci=CL.on&&M.claim>0;$("#tClaimRow").hidden=!ci;if(ci)$("#tClaimIn").textContent="+ "+RM(M.claim);$("#tClaimCardRow").hidden=!(c.claim>0);$("#tClaimCard").textContent=RM(c.claim)+" · not counted"}$("#tPers").textContent=RM(c.pers)+(M.cardOff?" · not counted":M.items.some(i=>i.name===CCNAME)?" · in list":"");const tc=$("#tCount");if(tc)tc.checked=!M.cardOff;
+  const lf=incTot()-c.tot-c.persOut,lfB=incTot()-c.totB-c.persOut;$("#tLeft").textContent=RM(lf);$("#tLeft").classList.toggle("neg",lf<0);$("#tLeftB").textContent=RM(lfB);$("#tLeftB").classList.toggle("neg",lfB<0);
   $("#tBar").style.width=(c.tot?c.paid/c.tot*100:0)+"%";
   const t=M.lastTick;$("#tLast").textContent=t?`${t.name} ${t.on?"ticked":"unticked"}: ${RM(t.before)} ${t.on?"−":"+"} ${RM(t.amt)} = ${RM(t.after)}`:(c.n&&!c.left?"All commitments paid for "+S.month+".":"Tick a box to deduct it.")}
 const opts=(list,v)=>{const l=list.includes(v)||!v?list:[v,...list];return l.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")};
 function editorHTML(x){const isNew=x.row==="new";
   return `<div class="edit"><label>Commitment<input id="eName" value="${esc(x.name)}" placeholder="e.g. Car insurance"></label>
     <label>Category<select id="eCat">${opts(CATS,x.cat)}</select></label>
-    <label>Amount (RM)<input id="eAmt" type="number" step="0.01" min="0" value="${isNew?"":x.amt}" inputmode="decimal"></label>
+    <label>Budget (RM)<input id="eAmt" type="number" step="0.01" min="0" value="${isNew?"":x.amt}" inputmode="decimal"></label>
     <label>Type<select id="eType">${opts(CTYPES,x.type)}</select></label>
+    <label>Actual (RM) <small>optional</small><input id="eAct" type="number" step="0.01" min="0" value="${x.act==null?"":x.act}" inputmode="decimal" placeholder="when the bill comes"></label>
     <div class="acts"><button class="primary" data-esave="${x.row}">${isNew?"Add":"Save"}</button><button data-ecancel="1">Cancel</button>${isNew?"":`<span class="spacer"></span><button class="danger" data-edel="${x.row}">Delete</button>`}</div></div>`}
 function renderChecklist(){
   renderTally();
   const g={};M.items.filter(x=>CL.on||x.name!==REFNAME).forEach(x=>(g[x.cat]=g[x.cat]||[]).push(x));
   const order=[...CATS,...Object.keys(g).filter(c=>!CATS.includes(c))].filter(c=>g[c]);
-  $("#clist").innerHTML=order.map(c=>{const L=g[c],t=L.reduce((s,x)=>s+x.amt,0),p=L.filter(x=>x.paid).reduce((s,x)=>s+x.amt,0);
-    return `<div class="grp"><h3>${icon(cs(c))}<span class="t">${esc(c)}</span><span class="num">${RM(p)} / ${RM(t)}</span></h3>`+
-    L.map(x=>EDIT.row===x.row?editorHTML(x):`<div class="item${x.paid?" paid":""}${M.cardOff&&x.name===CCNAME?" off":""}" ${M.cardOff&&x.name===CCNAME?'style="opacity:.45" title="Not counted this month"':""}><input type="checkbox" class="tick" data-tick="${x.row}" ${x.paid?"checked":""} ${M.cardOff&&x.name===CCNAME?"disabled":""} aria-label="Paid: ${esc(x.name)}"><span class="nm" data-toggle="${x.row}">${esc(x.name)} <small>· ${esc(x.type)}${M.cardOff&&x.name===CCNAME?" · not counted":""}</small></span><span class="amt">${x.amt.toFixed(2)}</span><span class="mv"><button class="pen" data-mv="${x.row}:-1" aria-label="Move ${esc(x.name)} up" title="Move up">▲</button><button class="pen" data-mv="${x.row}:1" aria-label="Move ${esc(x.name)} down" title="Move down">▼</button></span><button class="pen" data-edit="${x.row}" aria-label="Edit ${esc(x.name)}" title="Edit">✎</button></div>`).join("")+"</div>"}).join("")||`<div class="sub">No commitments on this month yet.</div>`;
+  const HDR=`<div class="item hd"><span></span><span class="nm">Commitment</span><span class="nums"><span>Budget</span><span>Actual</span></span><span></span><span></span></div>`;
+  $("#clist").innerHTML=(order.length?HDR:"")+order.map(c=>{const L=g[c],t=L.reduce((s,x)=>s+eff(x),0),p=L.filter(x=>x.paid).reduce((s,x)=>s+eff(x),0);
+    return `<div class="grp"><h3>${icon(cs(c))}<span class="t">${esc(c)}</span><span class="num" data-gcat="${esc(c)}">${RM(p)} / ${RM(t)}</span></h3>`+
+    L.map(x=>EDIT.row===x.row?editorHTML(x):`<div class="item${x.paid?" paid":""}${M.cardOff&&x.name===CCNAME?" off":""}" ${M.cardOff&&x.name===CCNAME?'style="opacity:.45" title="Not counted this month"':""}><input type="checkbox" class="tick" data-tick="${x.row}" ${x.paid?"checked":""} ${M.cardOff&&x.name===CCNAME?"disabled":""} aria-label="Paid: ${esc(x.name)}"><span class="nm" data-toggle="${x.row}">${esc(x.name)} <small>· ${esc(x.type)}${M.cardOff&&x.name===CCNAME?" · not counted":""}</small></span><span class="nums"><span class="amt">${x.amt.toFixed(2)}</span>${x.name===CCNAME||x.name===REFNAME?`<span class="amt" style="opacity:.6">auto</span>`:`<input type="number" class="act${x.act!=null&&x.act>x.amt+0.004?" over":x.act!=null&&x.act<x.amt-0.004?" under":""}" step="0.01" min="0" inputmode="decimal" data-act="${x.row}" value="${x.act==null?"":x.act}" placeholder="actual" aria-label="Actual amount for ${esc(x.name)}" title="${x.act==null?"Type the real bill when you know it":"Budget "+x.amt.toFixed(2)+", real "+x.act.toFixed(2)}">`}</span><span class="mv"><button class="pen" data-mv="${x.row}:-1" aria-label="Move ${esc(x.name)} up" title="Move up">▲</button><button class="pen" data-mv="${x.row}:1" aria-label="Move ${esc(x.name)} down" title="Move down">▼</button></span><button class="pen" data-edit="${x.row}" aria-label="Edit ${esc(x.name)}" title="Edit">✎</button></div>`).join("")+"</div>"}).join("")||`<div class="sub">No commitments on this month yet.</div>`;
   $("#clist").insertAdjacentHTML("beforeend",EDIT.row==="new"?editorHTML({row:"new",name:"",cat:"Housing",amt:0,type:"Fixed cost"}):`<div class="row" style="margin-top:12px"><button data-edit="new">+ Add commitment</button><span class="note">Changes apply to ${esc(S.month||"")}, later months and Profile & setup. Earlier months keep their history.</span></div>`);
 }
 function renderCats(){
-  const t={};liveItems().forEach(x=>t[x.cat]=(t[x.cat]||0)+x.amt);const c=calc();if(c.persOut>0)t["Personal spending"]=c.persOut;
+  const t={};liveItems().forEach(x=>t[x.cat]=(t[x.cat]||0)+eff(x));const c=calc();if(c.persOut>0)t["Personal spending"]=c.persOut;
   const left=incTot()-c.tot-c.persOut,max=Math.max(1,M.sal);
   $("#cats").innerHTML=Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const st=cs(k);return `<div class="cat">${icon(st)}<span>${esc(k)}</span><span class="bar"><i style="width:${Math.min(100,v/max*100)}%;background:${st[1]}"></i></span><span class="num">${RM(v)} · ${(v/max*100).toFixed(1)}%</span></div>`}).join("")+
     `<div class="cat">${icon([left<0?"debt":"piggy",left<0?"#BF3B26":"#23845A"])}<span><b>Left over</b></span><span class="bar"><i style="width:${Math.max(0,Math.min(100,left/max*100))}%;background:${left<0?"var(--crit)":"var(--good)"}"></i></span><span class="num${left<0?" neg":""}"><b>${RM(left)}</b> · ${(left/max*100).toFixed(1)}%</span></div><div class="note">Percent of total income (${RM(M.sal)}).</div>`;
@@ -1407,10 +1440,14 @@ async function syncCardItem(quiet){if(!S.month||ccBusy)return;ccBusy=true;const 
 
 /* ---------- clicks & changes for checklist / spending ---------- */
 document.addEventListener("change",async e=>{const t=e.target;
+  if(t.dataset.act!=null){const x=M.items.find(i=>i.row===+t.dataset.act);if(!x)return;const old=x.act;x.act=t.value.trim()===""?null:Math.max(0,Math.round(num(t.value)*100)/100);
+    t.classList.toggle("over",x.act!=null&&x.act>x.amt+0.004);t.classList.toggle("under",x.act!=null&&x.act<x.amt-0.004);M.lastTick=null;renderTally();renderCats();
+    $$("[data-gcat]").forEach(el=>{const L=M.items.filter(i=>i.cat===el.dataset.gcat&&(CL.on||i.name!==REFNAME));el.textContent=RM(L.filter(i=>i.paid).reduce((s,i)=>s+eff(i),0))+" / "+RM(L.reduce((s,i)=>s+eff(i),0))});
+    try{await put("F"+x.row,[[x.act==null?"":x.act]]);status($("#clStatus"),"Saved.","ok")}catch(err){x.act=old;renderChecklist();status($("#clStatus"),"Not saved: "+errText(err),"err")}return}
   if(t.id==="tCount"){const was=M.cardOff;M.cardOff=!t.checked;M.lastTick=null;renderChecklist();renderCats();if(S.tab==="health")renderHealth();
     try{await put("P6",[[M.cardOff?"OFF":""]]);status($("#clStatus"),M.cardOff?"Card spending is not counted in "+S.month+".":"Card spending is counted in "+S.month+".","ok")}catch(err){M.cardOff=was;renderChecklist();renderCats();status($("#clStatus"),"Not saved: "+errText(err),"err")}return}
   if(t.dataset.tick){const x=M.items.find(i=>i.row===+t.dataset.tick);if(!x)return;const before=calc().left;x.paid=t.checked;
-    M.lastTick={name:x.name,amt:x.amt,on:x.paid,before,after:calc().left};renderChecklist();renderCats();
+    M.lastTick={name:x.name,amt:eff(x),on:x.paid,before,after:calc().left};renderChecklist();renderCats();
     try{await put("A"+x.row,[[x.paid]]);status($("#clStatus"),"Saved to your sheet.","ok");if(x.name===REFNAME)reconcileRefund()}catch(err){x.paid=!x.paid;M.lastTick=null;renderChecklist();renderCats();status($("#clStatus"),"Not saved: "+errText(err),"err")}}
   if(t.dataset.sprow){const x=M.spend.find(i=>i.row===+t.dataset.sprow);if(!x)return;const old=x.type;x.type=t.value;renderAll();
     try{await put("L"+x.row,[[x.type]]);status($("#spStatus"),"Saved.","ok");syncCardItem()}catch(err){x.type=old;renderSpend();status($("#spStatus"),"Not saved: "+errText(err),"err")}}
@@ -1423,9 +1460,9 @@ document.addEventListener("click",async e=>{
   if(t.dataset.edit){EDIT.row=t.dataset.edit==="new"?"new":+t.dataset.edit;renderChecklist();const n=$("#eName");if(n)n.focus();return}
   if(t.dataset.ecancel){EDIT.row=null;renderChecklist();return}
   if(t.dataset.esave){const name=$("#eName").value.trim(),cat=$("#eCat").value,amt=Math.round(num($("#eAmt").value)*100)/100,type=$("#eType").value;
-    if(!name){status(st,"Give the commitment a name.","err");return}t.disabled=true;status(st,"Saving…");
-    try{if(t.dataset.esave==="new"){const row=Math.max(FR-1,...M.items.map(i=>i.row))+1;await put("A"+row+":E"+row,[[false,name,cat,amt,type]]);M.items.push({row,paid:false,name,cat,amt,type})}
-      else{const x=M.items.find(i=>i.row===+t.dataset.esave);await put("B"+x.row+":E"+x.row,[[name,cat,amt,type]]);Object.assign(x,{name,cat,amt,type})}
+    if(!name){status(st,"Give the commitment a name.","err");return}const act=$("#eAct").value.trim()===""?null:Math.max(0,Math.round(num($("#eAct").value)*100)/100);t.disabled=true;status(st,"Saving…");
+    try{if(t.dataset.esave==="new"){const row=Math.max(FR-1,...M.items.map(i=>i.row))+1;await put("A"+row+":F"+row,[[false,name,cat,amt,type,act==null?"":act]]);M.items.push({row,paid:false,name,cat,amt,type,act})}
+      else{const x=M.items.find(i=>i.row===+t.dataset.esave);await put("B"+x.row+":F"+x.row,[[name,cat,amt,type,act==null?"":act]]);Object.assign(x,{name,cat,amt,type,act})}
       EDIT.row=null;M.lastTick=null;renderAll();status(st,"Saved to your sheet.","ok");queueSync()}catch(err){t.disabled=false;status(st,"Not saved: "+errText(err),"err")}return}
   if(t.dataset.edel){if(!arm(t,"Delete"))return;const x=M.items.find(i=>i.row===+t.dataset.edel);t.disabled=true;
     try{await put("A"+x.row+":F"+x.row,[["","","","","",""]]);M.items=M.items.filter(i=>i!==x);EDIT.row=null;M.lastTick=null;renderAll();status(st,x.name+" deleted from "+S.month+".","ok");queueSync()}catch(err){t.disabled=false;status(st,"Not deleted: "+errText(err),"err")}return}
@@ -1611,6 +1648,196 @@ document.addEventListener("change",async e=>{const t=e.target;
   if(t.id==="fcStart"||t.id==="fcN"||t.id==="fcBase"||t.id==="fcDef"){const s=Math.round(num($("#fcStart").value)),n=Math.round(num($("#fcN").value));
     FC.start=s>=2000&&s<=2100?s:0;FC.n=Math.min(30,Math.max(1,n||10));FC.base=Math.max(0,num($("#fcBase").value));FC.def=Math.max(0,num($("#fcDef").value));renderForecast();await saveForecast()}});
 document.addEventListener("click",async e=>{const b=e.target.closest("#fcAll");if(!b)return;FC.pct={};renderForecast();await saveForecast();status($("#fcStatus"),"Every year now uses "+FC.def+"%.","ok")});
+
+/* ---------- What-if: try a big change on a copy (car, new company) without touching the real ledger ---------- */
+const WTAB="WhatIf",WI={loaded:false,list:[],snaps:[],sel:0,timer:null};
+async function loadWhatIf(){if(WI.loaded)return;
+  if(!S.sheets.some(p=>p.title===WTAB)){await call(SHEETS,"update_spreadsheet",{spreadsheetId:S.id,requests:[{addSheet:{properties:{title:WTAB,gridProperties:{rowCount:80,columnCount:3}}}}]});await refreshMeta();await put("A1",[["What-if scenarios (one per row)"]],WTAB)}
+  const v=await get("A3:A60",WTAB).catch(()=>[]);const all=v.map(r=>{try{return JSON.parse(r[0])}catch(e){return null}}).filter(Boolean);WI.snaps=all.filter(x=>x.snap&&x.rp);WI.list=all.filter(x=>!x.snap&&x.rows);WI.list.forEach(sc=>{if(sc.cardOn===undefined){const i=sc.rows.findIndex(r=>r.n===CCNAME);sc.cardOn=false;sc.cardAmt=i>=0?sc.rows[i].a:wiCardNow();if(i>=0)sc.rows.splice(i,1)}});
+  WI.sel=Math.min(Math.max(0,+ls.get("md.wi")||0),Math.max(0,WI.list.length-1));WI.loaded=true}
+function wiSaveSoon(){clearTimeout(WI.timer);status($("#wiStatus"),"Saving…");WI.timer=setTimeout(async()=>{try{await loadWhatIf();{const all=WI.list.concat(WI.snaps);await put("A3:A60",Array.from({length:58},(_,i)=>[all[i]?JSON.stringify(all[i]):""]),WTAB)};status($("#wiStatus"),"Saved.","ok");queueSync()}catch(e){status($("#wiStatus"),"Not saved: "+errText(e),"err")}},700)}
+function wiFromNow(name){const inc=S.inc||{};const g0=(inc.basic||0)+(inc.allow||0)+(M.ot||0),d0=Math.round((g0-M.sal)*100)/100;return{id:Date.now(),name,basic:inc.basic||0,allow:inc.allow||0,ot:M.ot||0,dedOv:d0>0?d0:"",dedCopied:d0>0?d0:null,raise:FC.def!=null?FC.def:3,grow:3,
+  rows:M.items.filter(x=>x.name!==REFNAME&&x.name!==CCNAME).map(x=>({n:x.name,c:x.cat,a:x.amt,on:true})),cardOn:false,cardAmt:wiCardNow()}}
+const wiNowRows=()=>M.items.filter(x=>x.name!==REFNAME&&x.name!==CCNAME);
+function wiCardNow(){const x=M.items.find(i=>i.name===CCNAME);return x?x.amt:0}
+function wiYear(){return S.month?yrOf(S.month):new Date().getFullYear()}
+const wiAuto=(g,k)=>statCalc(g,S.prof,wiYear()+k).total;
+function wiDed(g,k,g0,d0){const a0=wiAuto(g0,0);return d0!=null&&d0!==""&&a0>0?num(d0)*wiAuto(g,k)/a0:wiAuto(g,k)}
+function wiPay(sc,k){const f=Math.pow(1+(+sc.raise||0)/100,k),g0=Math.round((sc.basic+sc.allow+sc.ot)*100)/100,gross=Math.round((sc.basic*f+sc.allow+sc.ot)*100)/100,ded=k===0&&sc.dedOv!==""&&sc.dedOv!=null?num(sc.dedOv):wiDed(gross,k,g0,sc.dedOv);return{gross,ded,th:gross-ded}}
+function wiCosts(rows,grow,k){const g=Math.pow(1+(+grow||0)/100,k);return rows.reduce((s,r)=>s+(r.c==="Debt"?r.a:r.a*g),0)}
+function wiNowPay(k,raise){const inc=S.inc||{basic:0,allow:0};if(k===0)return{gross:inc.basic+inc.allow+(M.ot||0),th:M.sal,ded:inc.basic+inc.allow+(M.ot||0)-M.sal};
+  const f=Math.pow(1+(+raise||0)/100,k),g0=inc.basic+inc.allow+(M.ot||0),gross=Math.round((inc.basic*f+inc.allow+(M.ot||0))*100)/100,ded=wiDed(gross,k,g0,g0-M.sal);return{gross,ded,th:gross-ded}}
+function wiChart(labels,series){const W=720,H=280,L=62,R=20,T=18,B=40,all=series.flatMap(s=>s.vals),lo=Math.min(0,Math.floor(Math.min(...all)/500)*500),hi=Math.max(500,Math.ceil(Math.max(...all)*1.1/500)*500),
+  x=i=>L+(W-L-R)*(labels.length>1?i/(labels.length-1):0),y=v=>T+(H-T-B)*(1-(v-lo)/Math.max(1,hi-lo));
+  const grid=[0,1,2,3,4].map(k=>{const v=lo+(hi-lo)*k/4;return`<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="currentColor" opacity=".12"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="currentColor" opacity=".65">${Math.round(v).toLocaleString("en-MY")}</text>`}).join("");
+  const zero=lo<0?`<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="#BF3B26" stroke-width="1.5" stroke-dasharray="5 4"/>`:"";
+  const xl=labels.map((l,i)=>`<text x="${x(i)}" y="${H-B+18}" text-anchor="middle" font-size="11" fill="currentColor" opacity=".7">${esc(l)}</text>`).join("");
+  const ln=s=>`<polyline fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" points="${s.vals.map((v,i)=>x(i)+","+y(v)).join(" ")}"/>`+s.vals.map((v,i)=>`<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="${s.color}"><title>${esc(s.name)} · ${esc(labels[i])}: ${RM(v)}</title></circle>`).join("");
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Money left over each month, now and in the scenario" style="width:100%;height:auto;color:var(--ink)">${grid}${zero}${xl}${series.map(ln).join("")}</svg>`}
+function renderWhatIf(){renderWiSaved();const pick=$("#wiPick");
+  pick.innerHTML=WI.list.map((s,i)=>`<option value="${i}"${i===WI.sel?" selected":""}>${esc(s.name||"Untitled")}</option>`).join("")||`<option>No scenarios yet</option>`;
+  const has=WI.list.length>0;$("#wiDup").disabled=!has;$("#wiDel").disabled=!has;pick.disabled=!has;
+  if(!S.inc||!(S.inc.basic>0)){$("#wiGone").innerHTML="";$("#wiEdit").innerHTML=`<div class="sub">Enter your basic salary in the Checklist tab (Income box) first. A scenario starts as a copy of it.</div>`;$("#wiRes").innerHTML="";return}
+  if(!has){$("#wiGone").innerHTML="";$("#wiEdit").innerHTML=`<div class="movebox"><b>Start with a copy of your real life.</b><span>Press <b>+ New from my current profile</b>. It copies your salary and this month's budget into a scenario. Change anything, such as adding a car loan or a new salary, and see the result. Nothing you do here changes your real checklist.</span></div>`;$("#wiRes").innerHTML="";return}
+  const sc=WI.list[WI.sel];
+  $("#wiEdit").innerHTML=`<div class="card" style="gap:12px"><div class="row" style="flex-wrap:wrap"><h2 style="font-size:19px">Scenario</h2><span class="spacer"></span><button class="primary" id="wiSave">Save + PDF</button></div>
+    <div class="note">Changes save automatically. <b>Save + PDF</b> keeps a frozen copy under "Saved versions" and downloads a PDF.</div>
+    <div class="incgrid"><label>Name<input id="wiName" value="${esc(sc.name)}" style="text-align:left"></label></div>
+    <div class="imh sub">Pay in this scenario. Change these for a new company or a raise. <span class="note">Now: basic ${RM(S.inc.basic)}, allowance ${RM(S.inc.allow)}</span></div>
+    <div class="incgrid">
+      <label>Basic salary (RM)<input type="number" step="0.01" min="0" inputmode="decimal" data-wf="basic" value="${sc.basic||""}"></label>
+      <label>Allowance (RM)<input type="number" step="0.01" min="0" inputmode="decimal" data-wf="allow" value="${sc.allow||""}" placeholder="0"></label>
+      <label>OT / extra a month (RM)<input type="number" step="0.01" min="0" inputmode="decimal" data-wf="ot" value="${sc.ot||""}" placeholder="0"></label>
+      <label>Deductions (RM) <small>same as now until you change pay</small><input type="number" step="0.01" min="0" inputmode="decimal" data-wf="dedOv" value="${sc.dedOv===""||sc.dedOv==null?"":sc.dedOv}" placeholder="auto"></label>
+      <label>Yearly raise (%)<input type="number" step="0.1" min="0" inputmode="decimal" data-wf="raise" value="${sc.raise}"></label>
+      <label>Costs rise (% a year)<input type="number" step="0.1" min="0" inputmode="decimal" data-wf="grow" value="${sc.grow}"></label>
+    </div>
+    <div class="movebox" style="gap:8px"><label style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" class="tick" data-wf="cardOn" ${sc.cardOn?"checked":""}><b>Include credit card spending</b></label>
+      <span>Your card spending is different every month, so it is left out of this plan unless you tick it. Tick it to see the worst case. Now and the scenario both use it, so the comparison stays fair.</span>
+      <label style="max-width:240px">Card spending a month (RM)<input type="number" step="0.01" min="0" inputmode="decimal" data-wf="cardAmt" value="${sc.cardAmt||""}" placeholder="0" ${sc.cardOn?"":"disabled"}></label>
+      <span class="note">This month's real card total: ${RM(wiCardNow())}</span></div>
+    <div class="imh sub">Monthly commitments in this scenario. Untick one to drop it. Add new ones, like a car loan.</div>
+    <div class="tablewrap"><table><thead><tr><th></th><th>Commitment</th><th>Category</th><th class="r">RM</th><th class="r">Change</th><th></th></tr></thead><tbody>${wiGroups(sc)}</tbody></table></div>
+    <div class="row" style="flex-wrap:wrap"><button data-wiadd="1">+ Add commitment</button><button data-wiadd="car">+ Add car costs</button><span class="note">Car costs adds a loan, insurance, petrol and road tax. Fill in the amounts.</span></div></div>`;
+  renderWhatIfRes()}
+function wiRowHTML(r,i){return `<tr${r.on?"":' style="opacity:.45"'}><td><input type="checkbox" data-wir="${i}" data-wf="on" ${r.on?"checked":""} aria-label="Include ${esc(r.n)}"></td><td><input value="${esc(r.n)}" data-wir="${i}" data-wf="n" style="text-align:left;min-width:130px"></td><td><select data-wir="${i}" data-wf="c">${opts(CATS,r.c)}</select></td><td class="r"><input type="number" step="0.01" min="0" inputmode="decimal" data-wir="${i}" data-wf="a" value="${r.a}" style="width:96px;text-align:right"></td><td class="r num" id="wiD${i}"></td><td><button class="pen" data-wirm="${i}" aria-label="Remove" title="Remove">×</button></td></tr>`}
+function wiGroups(sc){const order=CATS.slice();sc.rows.forEach(r=>{if(!order.includes(r.c))order.push(r.c)});
+  return order.map(c=>{const idx=[];sc.rows.forEach((r,i)=>{if(r.c===c)idx.push(i)});if(!idx.length)return"";
+    return `<tr class="wig"><td colspan="6" style="background:var(--sunk);padding:8px 12px"><b style="text-transform:uppercase;letter-spacing:.05em;font-size:12px">${esc(c)}</b> <span class="note" data-wig="${esc(c)}"></span></td></tr>`+idx.map(i=>wiRowHTML(sc.rows[i],i)).join("")}).join("")}
+function renderWhatIfRes(){if(!WI.list.length||!S.inc)return;const sc=WI.list[WI.sel],yr=wiYear(),nowRows=wiNowRows(),nowByName={};nowRows.forEach(x=>nowByName[x.name]=x.amt);
+  $$("[data-wig]").forEach(el=>{const c=el.dataset.wig,a=sc.rows.filter(r=>r.c===c&&r.on).reduce((q,r)=>q+(+r.a||0),0),n=nowRows.filter(x=>x.cat===c).reduce((q,x)=>q+x.amt,0),same=Math.abs(a-n)<0.005;el.textContent="· "+RM(a)+(same?"":" (now "+RM(n)+")");el.style.color=same?"":a>n?"var(--crit)":"var(--good)"});
+  sc.rows.forEach((r,i)=>{const el=$("#wiD"+i);if(!el)return;const n=nowByName[r.n];el.textContent=!r.on?(n!=null?"dropped":""):n==null?"new":Math.abs(r.a-n)<0.005?"same":(r.a>n?"+ ":"− ")+Math.abs(r.a-n).toFixed(2);el.style.color=!r.on||n==null||r.a>n?"var(--crit)":"var(--good)";if(r.on&&n!=null&&Math.abs(r.a-n)<0.005)el.style.color="var(--muted)";if(!r.on&&n!=null)el.style.color="var(--good)"});
+  const nowC=sc.cardOn?nowRows.concat([{name:CCNAME,cat:"Credit card",amt:wiCardNow()}]):nowRows;
+  const on=sc.rows.filter(r=>r.on&&(+r.a||0)>0).concat(sc.cardOn&&(+sc.cardAmt||0)>0?[{n:CCNAME,c:"Credit card",a:+sc.cardAmt,on:true}]:[]),p0=wiPay(sc,0),n0=wiNowPay(0),cS=on.reduce((s,r)=>s+r.a,0),cN=nowC.reduce((s,x)=>s+x.amt,0),lS=p0.th-cS,lN=n0.th-cN,
+    pctS=p0.th>0?lS/p0.th*100:0,pctN=n0.th>0?lN/n0.th*100:0,debtS=on.filter(r=>r.c==="Debt").reduce((s,r)=>s+r.a,0),debtN=nowRows.filter(x=>x.cat==="Debt").reduce((s,x)=>s+x.amt,0);
+  const d=(a,b,inv)=>{const v=Math.round((a-b)*100)/100;return `<td class="r num${(inv?v>0:v<0)?" neg":""}">${v>0?"+ ":v<0?"− ":""}${RM(Math.abs(v))}</td>`};
+  let verdict,cls;if(lS<0){cls="crit";verdict=`<b>Not affordable as planned.</b> You would be short by ${RM(-lS)} every month.`}else if(pctS<10){cls="warn";verdict=`<b>Tight.</b> Only ${RM(lS)} left (${pctS.toFixed(1)}% of take-home). It works on paper but one bad month breaks it.`}else{cls="good";verdict=`<b>You can afford it.</b> ${RM(lS)} left every month (${pctS.toFixed(1)}% of take-home).`}
+  if(lN<0&&lS<lN-0.005)verdict+=` Your real month is already ${RM(-lN)} short, so this makes an existing gap ${RM(lN-lS)} bigger.`;else if(lN<0)verdict+=` Your real month is still ${RM(-lN)} short, so fix that first.`;
+  const labs=["Now"],sv=[lS],nv=[lN],rows5=[];for(let k=1;k<=5;k++){const ps=wiPay(sc,k),pn=wiNowPay(k,FC.def),cs=wiCosts(on,sc.grow,k),cn=wiCosts(nowC.map(x=>({c:x.cat,a:x.amt})),sc.grow,k);labs.push(String(yr+k));sv.push(ps.th-cs);nv.push(pn.th-cn);rows5.push({y:yr+k,th:ps.th,cs,ls:ps.th-cs,ln:pn.th-cn})}
+  const neg=rows5.find(r=>r.ls<0),warn5=lS>=0&&neg?`<div class="movebox"><b>Watch the later years.</b><span>With costs rising ${sc.grow}% a year (loan payments stay fixed) and raises of ${sc.raise}%, this scenario goes below zero in ${neg.y}.</span></div>`:"";
+  $("#wiRes").innerHTML=`<div class="card" style="gap:12px"><h2 style="font-size:19px">Can you still cope?</h2>
+    <div class="movebox" style="border-color:var(--${cls==="good"?"good":cls==="warn"?"warn":"crit"},#999)">${verdict}</div>${warn5}
+    <div class="tablewrap"><table><thead><tr><th></th><th class="r">Now (real)</th><th class="r">${esc(sc.name||"Scenario")}</th><th class="r">Difference</th></tr></thead><tbody>
+      <tr><td>Take-home pay a month</td><td class="r num">${RM(n0.th)}</td><td class="r num">${RM(p0.th)}</td>${d(p0.th,n0.th)}</tr>
+      <tr><td>Commitments a month</td><td class="r num">${RM(cN)}</td><td class="r num">${RM(cS)}</td>${d(cS,cN,true)}</tr>
+      <tr><td><b>Left over a month</b></td><td class="r num"><b>${RM(lN)}</b></td><td class="r num"><b>${RM(lS)}</b></td>${d(lS,lN)}</tr>
+      <tr><td>Left over as % of take-home</td><td class="r num">${pctN.toFixed(1)}%</td><td class="r num">${pctS.toFixed(1)}%</td><td class="r num">${(pctS-pctN>=0?"+ ":"− ")+Math.abs(pctS-pctN).toFixed(1)} pts</td></tr>
+      <tr><td>Loan payments ÷ gross pay</td><td class="r num">${n0.gross>0?(debtN/n0.gross*100).toFixed(1):"0.0"}%</td><td class="r num">${p0.gross>0?(debtS/p0.gross*100).toFixed(1):"0.0"}%</td><td class="r num"></td></tr></tbody></table></div>
+    <div class="note">"Now" is this month's real take-home and this month's budget. Credit card spending is left out unless you tick the option above, then it is counted on both sides. Take-home in the scenario is worked out with the Malaysian EPF, SOCSO, EIS and PCB rules unless you type your own deductions. The 10% rule is the same one your Health check uses. Banks also look at loan payments against gross pay when you apply, so keep an eye on that line.</div></div>
+    <div class="card" style="gap:12px"><h2 style="font-size:19px">The next 5 years</h2><div class="sub">Money left each month. Your pay rises by the raise % (now: the default from Salary forecast, ${FC.def}%). Costs rise by ${sc.grow}% a year, except loan payments, which stay fixed. Below the red line means you run short.</div>
+    ${wiChart(labs,[{name:"Now (real)",color:"#8B95A1",vals:nv},{name:sc.name||"Scenario",color:"#1D5FA5",vals:sv}])}
+    <div class="note" style="display:flex;gap:16px;flex-wrap:wrap"><span><b style="color:#8B95A1">●</b> Now (real)</span><span><b style="color:#1D5FA5">●</b> ${esc(sc.name||"Scenario")}</span></div>
+    <div class="tablewrap"><table><thead><tr><th>Year</th><th class="r">Take-home</th><th class="r">Commitments</th><th class="r">Left (scenario)</th><th class="r">Left (now)</th></tr></thead><tbody>${rows5.map(r=>`<tr><td><b>${r.y}</b></td><td class="r num">${r.th.toFixed(2)}</td><td class="r num">${r.cs.toFixed(2)}</td><td class="r num${r.ls<0?" neg":""}"><b>${r.ls.toFixed(2)}</b></td><td class="r num${r.ln<0?" neg":""}">${r.ln.toFixed(2)}</td></tr>`).join("")}</tbody></table></div></div>`;
+  const byN={};sc.rows.forEach(r=>{if(!(r.n in byN))byN[r.n]=r});
+  const ch=[];nowRows.forEach(x=>{const r=byN[x.name];if(!r||!r.on)ch.push({x,kind:"removed",d:-x.amt,to:0});else{const d=Math.round((r.a-x.amt)*100)/100;if(Math.abs(d)>=0.005)ch.push({x,kind:d<0?"reduced":"increased",d,to:r.a})}});
+  const net=Math.round(ch.reduce((q,c)=>q+c.d,0)*100)/100,sg=v=>(v<0?"− ":"+ ")+RM(Math.abs(v));
+  $("#wiGone").innerHTML=`<div class="card" style="gap:10px"><h2 style="font-size:19px">What you changed from your real list</h2>
+    <div class="sub">Check this list so you don't change the wrong thing. It shows every commitment you removed, reduced or increased compared with your real checklist.</div>
+    ${ch.length?`<div>${ch.map(c=>`<div class="row" style="padding:7px 0;border-bottom:1px solid var(--line);gap:10px"><span style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(c.x.name)} <small style="color:var(--muted)">· ${c.kind==="removed"?"removed, was "+c.x.amt.toFixed(2):c.x.amt.toFixed(2)+" → "+(+c.to).toFixed(2)}</small></span><b class="num" style="color:var(--${c.d<0?"good":"crit"})">${sg(c.d)}</b><button class="pen" data-wirestore="${esc(c.x.name)}" title="Put it back to the real amount" aria-label="Put back ${esc(c.x.name)}" style="width:auto;padding:4px 10px">Put back</button></div>`).join("")}
+    <div class="row" style="padding:10px 0 0;gap:10px"><b style="flex:1">${net<0?"Total reduced":net>0?"Total increased":"Net change"} (${ch.length} change${ch.length===1?"":"s"})</b><b class="num">${net===0?RM(0):sg(net)}</b></div></div>`:`<div class="sub"><b>No changes.</b> Every commitment is the same as your real list.</div>`}</div>`}
+document.addEventListener("input",e=>{const t=e.target;if(!t.closest||!t.closest("#v-whatif"))return;const sc=WI.list[WI.sel];if(!sc)return;
+  if(t.id==="wiName"){sc.name=t.value;$("#wiPick").options[WI.sel].textContent=t.value||"Untitled";wiSaveSoon();return}
+  if(t.dataset.wir!=null&&t.dataset.wf){const r=sc.rows[+t.dataset.wir];if(!r)return;const f=t.dataset.wf;if(f==="on")r.on=t.checked;else if(f==="a")r.a=Math.max(0,num(t.value));else r[f]=t.value;
+    if(f==="on")t.closest("tr").style.opacity=r.on?"":".45";renderWhatIfRes();wiSaveSoon();return}
+  if(t.dataset.wf==="cardOn"){sc.cardOn=t.checked;const ci=$('#wiEdit [data-wf="cardAmt"]');if(ci)ci.disabled=!sc.cardOn;renderWhatIfRes();wiSaveSoon();return}
+  if(t.dataset.wf){const f=t.dataset.wf;sc[f]=f==="dedOv"?(t.value===""?"":Math.max(0,num(t.value))):Math.max(0,num(t.value));
+    if(f==="dedOv")sc.dedCopied=null;
+    else if(["basic","allow","ot"].includes(f)&&sc.dedCopied!=null&&sc.dedOv===sc.dedCopied){sc.dedOv="";sc.dedCopied=null;const di=$('#wiEdit [data-wf="dedOv"]');if(di)di.value=""}
+    renderWhatIfRes();wiSaveSoon()}});
+document.addEventListener("change",e=>{const t=e.target;if(t.id==="wiPick"){WI.sel=+t.value||0;ls.set("md.wi",WI.sel);renderWhatIf();return}
+  if(t.dataset&&t.dataset.wir!=null&&t.dataset.wf==="c"){const sc=WI.list[WI.sel];sc.rows[+t.dataset.wir].c=t.value;wiSaveSoon();renderWhatIf()}});
+document.addEventListener("click",async e=>{const b=e.target.closest("button");if(!b)return;
+  if(b.id==="wiNew"){try{await loadWhatIf();if(WI.list.length>=24){status($("#wiStatus"),"That is enough scenarios (24). Delete one first.","err");return}
+      WI.list.push(wiFromNow(WI.list.length?"Scenario "+(WI.list.length+1):"New scenario"));WI.sel=WI.list.length-1;ls.set("md.wi",WI.sel);renderWhatIf();wiSaveSoon();const n=$("#wiName");if(n){n.focus();n.select()}}catch(err){status($("#wiStatus"),errText(err),"err")}return}
+  if(b.id==="wiSave"){const sc=WI.list[WI.sel];if(!sc)return;b.disabled=true;const old=b.textContent;b.textContent="Saving…";
+    try{await loadWhatIf();if(WI.snaps.length>=30){status($("#wiStatus"),"30 saved versions is the limit. Delete an old one first.","err");return}
+      const rp=wiReport(sc),st=wiStamp(),snap={snap:true,id:Date.now(),at:st.full,rp,sc:JSON.parse(JSON.stringify(sc))};
+      WI.snaps.unshift(snap);renderWiSaved();wiSaveSoon();
+      try{await wiDownloadPdf(rp,st.full,st.day);status($("#wiStatus"),"Saved, and the PDF is downloading.","ok")}catch(e){status($("#wiStatus"),"Saved. The PDF could not be made (need internet once): "+errText(e)+". Press PDF in Saved versions to try again.","err")}
+    }catch(err){status($("#wiStatus"),errText(err),"err")}finally{b.disabled=false;b.textContent=old}return}
+  if(b.dataset.wsn){const [act,id]=b.dataset.wsn.split(":"),i=WI.snaps.findIndex(x=>String(x.id)===id),x=WI.snaps[i];if(!x)return;
+    if(act==="pdf"){b.disabled=true;try{const d=new Date(x.id),p=n=>String(n).padStart(2,"0");await wiDownloadPdf(x.rp,x.at,d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()))}catch(e){status($("#wiStatus"),"PDF not made: "+errText(e),"err")}b.disabled=false;return}
+    if(act==="open"){const c=JSON.parse(JSON.stringify(x.sc));c.id=Date.now();c.name=(c.name||"Scenario")+" (opened)";WI.list.push(c);WI.sel=WI.list.length-1;ls.set("md.wi",WI.sel);renderWhatIf();wiSaveSoon();status($("#wiStatus"),"Opened as a new scenario. The saved copy is unchanged.","ok");return}
+    if(act==="del"){if(!armBtn(b,"Delete","Click again to delete"))return;WI.snaps.splice(i,1);renderWiSaved();wiSaveSoon();return}}
+  if(b.id==="wiDup"){const s=JSON.parse(JSON.stringify(WI.list[WI.sel]));s.id=Date.now();s.name=(s.name||"Scenario")+" copy";WI.list.push(s);WI.sel=WI.list.length-1;ls.set("md.wi",WI.sel);renderWhatIf();wiSaveSoon();return}
+  if(b.id==="wiDel"){if(!b.dataset.armed){b.dataset.armed=1;b.textContent="Click again to delete";setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent="Delete"}},3000);return}
+    delete b.dataset.armed;b.textContent="Delete";WI.list.splice(WI.sel,1);WI.sel=Math.max(0,WI.sel-1);ls.set("md.wi",WI.sel);renderWhatIf();wiSaveSoon();return}
+  if(b.dataset.wirestore!=null){const sc=WI.list[WI.sel],n=b.dataset.wirestore,r=sc.rows.find(q=>q.n===n),x=wiNowRows().find(q=>q.name===n);if(r){r.on=true;if(x)r.a=x.amt}else if(x)sc.rows.push({n:x.name,c:x.cat,a:x.amt,on:true});renderWhatIf();wiSaveSoon();return}
+  if(b.dataset.wirm!=null){WI.list[WI.sel].rows.splice(+b.dataset.wirm,1);renderWhatIf();wiSaveSoon();return}
+  if(b.dataset.wiadd){const sc=WI.list[WI.sel];if(b.dataset.wiadd==="car")sc.rows.push({n:"Car loan",c:"Debt",a:0,on:true},{n:"Car insurance",c:"Protection",a:0,on:true},{n:"Petrol and toll",c:"Transport",a:0,on:true},{n:"Road tax and servicing",c:"Transport",a:0,on:true});
+    else sc.rows.push({n:"",c:"Lifestyle",a:0,on:true});renderWhatIf();wiSaveSoon();const fi=b.dataset.wiadd==="car"?sc.rows.length-4:sc.rows.length-1,el=$('#wiEdit [data-wf="n"][data-wir="'+fi+'"]');if(el){el.scrollIntoView({block:"center"});el.focus()}}});
+
+/* ---------- What-if: save a frozen copy + PDF ---------- */
+let jspdfReady=null;const jspdfLib=()=>{if(!jspdfReady)jspdfReady=loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js").then(()=>window.jspdf.jsPDF);return jspdfReady};
+const pdfRM=v=>(v<0?"-":"")+"RM "+Math.abs(v).toLocaleString("en-MY",{minimumFractionDigits:2,maximumFractionDigits:2});
+function wiReport(sc){const yr=wiYear(),nowRows=wiNowRows(),nowC=sc.cardOn?nowRows.concat([{name:CCNAME,cat:"Credit card",amt:wiCardNow()}]):nowRows,
+  on=sc.rows.filter(r=>r.on&&(+r.a||0)>0).concat(sc.cardOn&&(+sc.cardAmt||0)>0?[{n:CCNAME,c:"Credit card",a:+sc.cardAmt,on:true}]:[]),p0=wiPay(sc,0),n0=wiNowPay(0),
+  cS=on.reduce((s,r)=>s+r.a,0),cN=nowC.reduce((s,x)=>s+x.amt,0),lS=p0.th-cS,lN=n0.th-cN,pctS=p0.th>0?lS/p0.th*100:0,pctN=n0.th>0?lN/n0.th*100:0,
+  debtS=on.filter(r=>r.c==="Debt").reduce((s,r)=>s+r.a,0),debtN=nowRows.filter(x=>x.cat==="Debt").reduce((s,x)=>s+x.amt,0);
+  let verdict,cls;if(lS<0){cls="crit";verdict=`Not affordable as planned. You would be short by ${pdfRM(-lS)} every month.`}else if(pctS<10){cls="warn";verdict=`Tight. Only ${pdfRM(lS)} left (${pctS.toFixed(1)}% of take-home). It works on paper but one bad month breaks it.`}else{cls="good";verdict=`You can afford it. ${pdfRM(lS)} left every month (${pctS.toFixed(1)}% of take-home).`}
+  if(lN<0&&lS<lN-0.005)verdict+=` Your real month is already ${pdfRM(-lN)} short, so this makes an existing gap ${pdfRM(lN-lS)} bigger.`;else if(lN<0)verdict+=` Your real month is still ${pdfRM(-lN)} short, so fix that first.`;
+  const labs=["Now"],sv=[lS],nv=[lN],rows5=[];for(let k=1;k<=5;k++){const ps=wiPay(sc,k),pn=wiNowPay(k,FC.def),cs=wiCosts(on,sc.grow,k),cn=wiCosts(nowC.map(x=>({c:x.cat,a:x.amt})),sc.grow,k);labs.push(String(yr+k));sv.push(ps.th-cs);nv.push(pn.th-cn);rows5.push({y:yr+k,th:ps.th,cs,ls:ps.th-cs,ln:pn.th-cn})}
+  const neg=rows5.find(r=>r.ls<0),warn=lS>=0&&neg?`Watch the later years: with costs rising ${sc.grow}% a year (loan payments stay fixed) and raises of ${sc.raise}%, this scenario goes below zero in ${neg.y}.`:"";
+  const byN={};sc.rows.forEach(r=>{if(!(r.n in byN))byN[r.n]=r});const changes=[];
+  nowRows.forEach(x=>{const r=byN[x.name];if(!r||!r.on)changes.push({n:x.name,t:"removed, was "+x.amt.toFixed(2),d:-x.amt});else{const d=Math.round((r.a-x.amt)*100)/100;if(Math.abs(d)>=0.005)changes.push({n:x.name,t:x.amt.toFixed(2)+" -> "+(+r.a).toFixed(2),d})}});
+  const nowNames=new Set(nowRows.map(x=>x.name));sc.rows.forEach(r=>{if(r.on&&!nowNames.has(r.n)&&(+r.a||0)>0)changes.push({n:r.n||"(no name)",t:"new",d:+r.a})});
+  const net=Math.round(changes.reduce((q,c)=>q+c.d,0)*100)/100;
+  return{name:sc.name||"Scenario",month:S.month||"",cls,verdict,warn,labs,sv,nv,rows5,changes,net,
+    tbl:[["Take-home pay a month",n0.th,p0.th],["Commitments a month",cN,cS],["Left over a month",lN,lS]],pct:[pctN,pctS],loan:[n0.gross>0?debtN/n0.gross*100:0,p0.gross>0?debtS/p0.gross*100:0],
+    pay:{basic:sc.basic,allow:sc.allow,ot:sc.ot,ded:p0.ded,gross:p0.gross,raise:sc.raise,grow:sc.grow,cardOn:!!sc.cardOn,cardAmt:+sc.cardAmt||0},
+    rows:sc.rows.map(r=>({n:r.n,c:r.c,a:+r.a||0,on:!!r.on}))}}
+async function wiMakePdf(rp,savedAt){const J=await jspdfLib(),doc=new J({unit:"mm",format:"a4"}),W=210,L=15,R=W-15;let y=18;
+  const col={ink:[22,34,54],mut:[100,110,125],good:[26,140,96],warn:[190,120,20],crit:[191,59,38],blue:[29,95,165],grey:[139,149,161],line:[220,225,232]};
+  const set=(c)=>doc.setTextColor(c[0],c[1],c[2]),fs=(n,b)=>{doc.setFontSize(n);doc.setFont("helvetica",b?"bold":"normal")};
+  const need=h=>{if(y+h>285){doc.addPage();y=18}};
+  const hr=()=>{doc.setDrawColor(...col.line);doc.line(L,y,R,y);y+=3};
+  const para=(t,n,c,b)=>{fs(n,b);set(c||col.ink);const ls=doc.splitTextToSize(t,R-L);need(ls.length*(n*0.42)+2);doc.text(ls,L,y);y+=ls.length*(n*0.42)+2};
+  const h2=t=>{need(14);y+=3;fs(13,1);set(col.ink);doc.text(t,L,y);y+=2;hr()};
+  fs(20,1);set(col.ink);doc.text("Du-it Smart - What-if",L,y);y+=7;
+  fs(14,1);set(col.blue);doc.text(rp.name,L,y);y+=6;
+  fs(9);set(col.mut);doc.text(`Based on ${rp.month||"current"} figures. Saved ${savedAt}. For my reference only.`,L,y);y+=7;
+  const vc=col[rp.cls];doc.setDrawColor(...vc);doc.setLineWidth(0.6);const vl=doc.splitTextToSize(rp.verdict,R-L-8);const vh=vl.length*4.6+6;doc.roundedRect(L,y,R-L,vh,2,2);fs(10.5,1);set(vc);doc.text(vl,L+4,y+6);doc.setLineWidth(0.2);y+=vh+4;
+  if(rp.warn)para(rp.warn,9.5,col.warn,1);
+  h2("Now compared with this scenario");
+  const cx=[L,115,150,R];fs(9,1);set(col.mut);doc.text("",L,y);doc.text("NOW (REAL)",cx[1],y,{align:"right"});doc.text("SCENARIO",cx[2],y,{align:"right"});doc.text("DIFFERENCE",cx[3],y,{align:"right"});y+=5;
+  const dsg=v=>(v>0?"+ ":v<0?"- ":"")+pdfRM(Math.abs(v)).replace("-","");
+  rp.tbl.forEach((r,i)=>{const b=i===2;fs(10,b);set(col.ink);doc.text(r[0],L,y);doc.text(pdfRM(r[1]),cx[1],y,{align:"right"});doc.text(pdfRM(r[2]),cx[2],y,{align:"right"});const d=Math.round((r[2]-r[1])*100)/100,bad=i===1?d>0:d<0;set(d===0?col.mut:bad?col.crit:col.good);doc.text(d===0?pdfRM(0):dsg(d),cx[3],y,{align:"right"});y+=6});
+  fs(10);set(col.ink);doc.text("Left over as % of take-home",L,y);doc.text(rp.pct[0].toFixed(1)+"%",cx[1],y,{align:"right"});doc.text(rp.pct[1].toFixed(1)+"%",cx[2],y,{align:"right"});y+=6;
+  doc.text("Loan payments / gross pay",L,y);doc.text(rp.loan[0].toFixed(1)+"%",cx[1],y,{align:"right"});doc.text(rp.loan[1].toFixed(1)+"%",cx[2],y,{align:"right"});y+=6;
+  fs(8.5);set(col.mut);const nt=doc.splitTextToSize("Credit card spending is "+(rp.pay.cardOn?"counted ("+pdfRM(rp.pay.cardAmt)+" a month) on both sides.":"left out of both sides.")+" Take-home uses Malaysian EPF, SOCSO, EIS and PCB rules unless deductions were typed in.",R-L);doc.text(nt,L,y);y+=nt.length*3.8+2;
+  h2("Pay in this scenario");
+  [["Basic salary",pdfRM(rp.pay.basic)],["Allowance",pdfRM(rp.pay.allow||0)],["OT / extra a month",pdfRM(rp.pay.ot||0)],["Gross pay",pdfRM(rp.pay.gross)],["Deductions (EPF, SOCSO, EIS, tax)",pdfRM(rp.pay.ded)],["Yearly raise",rp.pay.raise+"%"],["Costs rise a year",rp.pay.grow+"%"]].forEach(r=>{need(6);fs(10);set(col.ink);doc.text(r[0],L,y);doc.text(r[1],cx[1],y,{align:"right"});y+=5.5});
+  h2(`What changed from the real list (${rp.changes.length})`);
+  if(!rp.changes.length)para("No changes.",10,col.mut);
+  rp.changes.forEach(c=>{need(6);fs(10);set(col.ink);const nm=doc.splitTextToSize(c.n,85);doc.text(nm[0],L,y);fs(9);set(col.mut);doc.text(c.t,100,y);fs(10,1);set(c.d<0?col.good:col.crit);doc.text(dsg(c.d),R,y,{align:"right"});y+=5.5});
+  if(rp.changes.length){need(8);doc.setDrawColor(...col.line);doc.line(L,y-2,R,y-2);y+=2;fs(10,1);set(col.ink);doc.text(rp.net<0?"Total reduced":rp.net>0?"Total increased":"Net change",L,y);doc.text(rp.net===0?pdfRM(0):dsg(rp.net),R,y,{align:"right"});y+=6}
+  h2("Next 5 years: money left each month");
+  need(70);{const cw=R-L-14,ch=48,x0=L+14,y0=y+2,all=rp.sv.concat(rp.nv),lo=Math.min(0,Math.floor(Math.min(...all)/500)*500),hi=Math.max(500,Math.ceil(Math.max(...all)*1.1/500)*500),
+    X=i=>x0+cw*(rp.labs.length>1?i/(rp.labs.length-1):0),Y=v=>y0+ch*(1-(v-lo)/Math.max(1,hi-lo));
+    doc.setDrawColor(...col.line);for(let k=0;k<=4;k++){const v=lo+(hi-lo)*k/4;doc.line(x0,Y(v),x0+cw,Y(v));fs(7.5);set(col.mut);doc.text(String(Math.round(v)),x0-2,Y(v)+1,{align:"right"})}
+    if(lo<0){doc.setDrawColor(...col.crit);doc.setLineDashPattern([1.5,1.2],0);doc.line(x0,Y(0),x0+cw,Y(0));doc.setLineDashPattern([],0)}
+    rp.labs.forEach((l,i)=>{fs(8);set(col.mut);doc.text(l,X(i),y0+ch+5,{align:"center"})});
+    [[rp.nv,col.grey],[rp.sv,col.blue]].forEach(([vals,c])=>{doc.setDrawColor(...c);doc.setLineWidth(0.7);for(let i=1;i<vals.length;i++)doc.line(X(i-1),Y(vals[i-1]),X(i),Y(vals[i]));doc.setFillColor(...c);vals.forEach((v,i)=>doc.circle(X(i),Y(v),0.9,"F"));doc.setLineWidth(0.2)});
+    y=y0+ch+9;fs(8.5);doc.setFillColor(...col.grey);doc.circle(L+1,y-1,1,"F");set(col.grey);doc.text("Now (real)",L+4,y);doc.setFillColor(...col.blue);doc.circle(L+31,y-1,1,"F");set(col.blue);doc.text(rp.name,L+34,y);y+=6}
+  need(42);const tx=[L,75,115,155,R];fs(9,1);set(col.mut);["YEAR","TAKE-HOME","COMMITMENTS","LEFT (SCENARIO)","LEFT (NOW)"].forEach((t,i)=>doc.text(t,tx[i],y,{align:i?"right":"left"}));y+=5;
+  rp.rows5.forEach(r=>{need(6);fs(10,1);set(col.ink);doc.text(String(r.y),tx[0],y);fs(10);doc.text(pdfRM(r.th),tx[1],y,{align:"right"});doc.text(pdfRM(r.cs),tx[2],y,{align:"right"});set(r.ls<0?col.crit:col.ink);fs(10,1);doc.text(pdfRM(r.ls),tx[3],y,{align:"right"});fs(10);set(r.ln<0?col.crit:col.ink);doc.text(pdfRM(r.ln),tx[4],y,{align:"right"});y+=5.5});
+  h2("All commitments in this scenario");
+  const inc=rp.rows.filter(r=>r.on),exc=rp.rows.filter(r=>!r.on);
+  inc.forEach(r=>{need(6);fs(10);set(col.ink);doc.text(doc.splitTextToSize((r.n||"(no name)"),90)[0],L,y);fs(9);set(col.mut);doc.text(r.c||"",110,y);fs(10);set(col.ink);doc.text(pdfRM(r.a),R,y,{align:"right"});y+=5.2});
+  if(rp.pay.cardOn&&rp.pay.cardAmt>0){need(6);fs(10);set(col.ink);doc.text("Credit card spending",L,y);fs(9);set(col.mut);doc.text("Credit card",110,y);fs(10);set(col.ink);doc.text(pdfRM(rp.pay.cardAmt),R,y,{align:"right"});y+=5.2}
+  need(8);doc.setDrawColor(...col.line);doc.line(L,y-2,R,y-2);y+=2;fs(10,1);set(col.ink);doc.text("Total commitments a month",L,y);doc.text(pdfRM(rp.tbl[1][2]),R,y,{align:"right"});y+=7;
+  if(exc.length){need(10);fs(9,1);set(col.mut);doc.text("NOT INCLUDED (unticked)",L,y);y+=5;exc.forEach(r=>{need(6);fs(9.5);set(col.mut);doc.text((r.n||"(no name)")+"  "+pdfRM(r.a),L,y);y+=4.8})}
+  const pn=doc.getNumberOfPages();for(let i=1;i<=pn;i++){doc.setPage(i);fs(8);set(col.mut);doc.text(`Du-it Smart - What-if: ${rp.name}   |   Page ${i} of ${pn}`,L,292)}
+  return doc}
+const wiFile=(rp,d)=>("Du-it Smart What-if - "+rp.name+" - "+d+".pdf").replace(/[\\/:*?"<>|]+/g,"-");
+const wiStamp=()=>{const d=new Date(),p=n=>String(n).padStart(2,"0");return{day:d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate()),full:d.getDate()+" "+d.toLocaleString("en-GB",{month:"short"})+" "+d.getFullYear()+", "+p(d.getHours())+":"+p(d.getMinutes())}};
+async function wiDownloadPdf(rp,savedAt,day){const doc=await wiMakePdf(rp,savedAt);doc.save(wiFile(rp,day))}
+function renderWiSaved(){const el=$("#wiSaved");if(!el)return;const sn=WI.snaps||[];
+  el.innerHTML=`<div class="card" style="gap:10px"><h2 style="font-size:19px">Saved versions</h2>
+    <div class="sub">Press <b>Save + PDF</b> to keep a frozen copy of a scenario and download its PDF. Saved copies never change, so you can save another version and still see the earlier ones.</div>
+    ${sn.length?sn.map((x,i)=>`<div style="padding:9px 0;border-bottom:1px solid var(--line);display:grid;gap:6px"><div class="row" style="gap:10px"><b style="flex:1;min-width:0;overflow-wrap:anywhere">${esc(x.rp.name)}</b><span class="note">${esc(x.at)}</span></div>
+      <div class="note">Take-home ${RM(x.rp.tbl[0][2])} · Commitments ${RM(x.rp.tbl[1][2])} · <b style="color:var(--${x.rp.cls==="good"?"good":x.rp.cls==="warn"?"warn":"crit"})">Left ${RM(x.rp.tbl[2][2])} a month</b> · ${x.rp.changes.length} change${x.rp.changes.length===1?"":"s"}</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap"><button data-wsn="pdf:${x.id}">PDF</button><button data-wsn="open:${x.id}">Open as new scenario</button><button class="clr" data-wsn="del:${x.id}">Delete</button></div></div>`).join(""):`<div class="sub"><b>Nothing saved yet.</b></div>`}</div>`}
 
 /* ---------- upload ---------- */
 function setFiles(list){for(const f of list)S.files.push(f);$("#fileList").innerHTML=S.files.map((f,i)=>`<span>${esc(f.name||"photo")} <button data-rm="${i}" style="padding:0 6px;border:0" aria-label="Remove">×</button></span>`).join("");updateReadBtn()}
@@ -2100,10 +2327,10 @@ async function exportExcel(){
         ["Claims to submit",{formula:`SUMIF(L${FR}:L${last},"Claim",J${FR}:J${last})`}],["Left after everything",{formula:"C11-C12"}]];
       L.forEach(([l,v],i)=>{const r=4+i;ws.getCell("B"+r).value=l;const c=ws.getCell("C"+r);c.value=v;c.numFmt=money;const hl=(r===9||r===10);
         [ws.getCell("B"+r),c].forEach(x=>{x.fill={type:"pattern",pattern:"solid",fgColor:{argb:hl?INK:SUNK}};x.font={name:"Arial",size:hl?12:10,bold:hl||r===14,color:{argb:hl?WHITE:INK}}})});
-      ["Paid?","Commitment","Category","Amount (RM)","Type","Note"].forEach((h,i)=>{const c=ws.getCell(17,i+1);c.value=h;hdr(c)});
+      ["Paid?","Commitment","Category","Budget (RM)","Type","Actual (RM)"].forEach((h,i)=>{const c=ws.getCell(17,i+1);c.value=h;hdr(c)});
       ["Date","Description","Amount (RM)","Card / source","Personal or claim","Category"].forEach((h,i)=>{const c=ws.getCell(17,i+8);c.value=h;hdr(c)});
       let r=FR,sr=FR;d.rows.forEach(row=>{
-        if(row[1]){ws.getCell("A"+r).value=String(row[0]).toUpperCase()==="TRUE"?"Yes":"No";ws.getCell("B"+r).value=row[1];ws.getCell("C"+r).value=row[2]||"";const a=ws.getCell("D"+r);a.value=num(row[3]);a.numFmt=money;ws.getCell("E"+r).value=row[4]||"";ws.getCell("F"+r).value=row[5]||"";r++}
+        if(row[1]){ws.getCell("A"+r).value=String(row[0]).toUpperCase()==="TRUE"?"Yes":"No";ws.getCell("B"+r).value=row[1];ws.getCell("C"+r).value=row[2]||"";const a=ws.getCell("D"+r);a.value=num(row[3]);a.numFmt=money;ws.getCell("E"+r).value=row[4]||"";{const fc=ws.getCell("F"+r);const fv=String(row[5]==null?"":row[5]).trim();fc.value=fv===""?"":num(fv);fc.numFmt=money}r++}
         if(row[8]){ws.getCell("H"+sr).value=row[7]||"";ws.getCell("I"+sr).value=row[8];const a=ws.getCell("J"+sr);a.value=num(row[9]);a.numFmt=money;ws.getCell("K"+sr).value=row[10]||"";ws.getCell("L"+sr).value=row[11]||"";ws.getCell("M"+sr).value=row[12]||"";sr++}});
       for(let i=FR;i<=last;i++){ws.getCell("A"+i).dataValidation={type:"list",allowBlank:true,formulae:['"Yes,No"']};ws.getCell("L"+i).dataValidation={type:"list",allowBlank:true,formulae:['"Personal,Claim,In my list,Ignore"']};ws.getCell("A"+i).alignment={horizontal:"center"}}
       ws.addConditionalFormatting({ref:`A${FR}:F${last}`,rules:[{type:"expression",formulae:[`$A${FR}="Yes"`],style:{fill:{type:"pattern",pattern:"solid",bgColor:{argb:PALE}},font:{strike:true,color:{argb:"FF7A8A86"}}}}]});
@@ -2218,13 +2445,13 @@ $("#incCam").onchange=e=>{const f=[...e.target.files];e.target.value="";if(f.len
 /* ---------- keep checklist, Profile & setup and later months in step ---------- */
 const listOf=()=>[...M.items].sort((a,b)=>a.row-b.row);
 async function writeMonthList(m,list,prevMax){const n=Math.max(list.length,(prevMax||0)-FR+1);if(!n)return;
-  await put("A"+FR+":E"+(FR+n-1),Array.from({length:n},(_,i)=>{const x=list[i];return x?[!!x.paid,x.name,x.cat,x.amt,x.type]:["","","","",""]}),m)}
+  await put("A"+FR+":F"+(FR+n-1),Array.from({length:n},(_,i)=>{const x=list[i];return x?[!!x.paid,x.name,x.cat,x.amt,x.type,x.act==null?"":x.act]:["","","","","",""]}),m)}
 async function compactCurrent(order){const prevMax=Math.max(FR-1,...M.items.map(i=>i.row));const list=order||listOf();
   await writeMonthList(S.month,list,prevMax);list.forEach((x,i)=>x.row=FR+i);M.items=list}
-async function applyToMonth(m,list){const v=await get("A"+FR+":E400",m);const tick={};v.forEach(r=>{if(r[1])tick[r[1]]=String(r[0]).toUpperCase()==="TRUE"});
+async function applyToMonth(m,list){const v=await get("A"+FR+":F400",m);const tick={},actM={};v.forEach(r=>{if(r[1]){tick[r[1]]=String(r[0]).toUpperCase()==="TRUE";actM[r[1]]=String(r[5]==null?"":r[5]).trim()===""?null:num(r[5])}});
   const cc=v.find(r=>r[1]===CCNAME);list=list.filter(x=>x.name!==CCNAME);if(cc)list=[...list,{name:CCNAME,cat:"Credit card",amt:num(cc[3]),type:cc[4]||"Guilt-free"}];
   const prev=v.reduce((mx,r,i)=>r.some(c=>String(c||"").trim()&&String(c).toUpperCase()!=="FALSE")?FR+i:mx,FR-1);
-  await writeMonthList(m,list.map(x=>({...x,paid:!!tick[x.name]})),prev)}
+  await writeMonthList(m,list.map(x=>({...x,paid:!!tick[x.name],act:actM[x.name]==null?null:actM[x.name]})),prev)}
 let syncTimer=null;
 function queueSync(){clearTimeout(syncTimer);syncTimer=setTimeout(syncForward,1200)}
 async function syncForward(){syncTimer=null;if(!S.month)return;const st=$("#clStatus"),list=listOf().filter(x=>x.name!==CCNAME);
